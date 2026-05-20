@@ -332,3 +332,34 @@ model UsageMetric {
   @@unique([userId, metric, period])
   @@map("usage_metrics")
 }
+
+// ═══════════════════════════════════════════
+// MODELOS EXTRAS DO BANCO VETORIAL (INSTRUÇÕES DO USUÁRIO)
+// ═══════════════════════════════════════════
+
+// Tabela que armazena as notícias e dados brutos raspados
+model KnowledgeChunk {
+  id                  String                      @id @default(uuid())
+  content             String                      @db.Text // O texto da notícia/relatório
+  embedding           Unsupported("vector(1536)")? // O vetor semântico
+  category            String                      // ex: "clima", "logistica", "tributario"
+  commoditiesImpacted String[]                    // ex: ["leite", "trigo", "soja"]
+  sourceCredibility   Int                         // De 1 a 10
+  publishedAt         DateTime
+  createdAt           DateTime                    @default(now())
+
+  @@index([embedding]) // Indexação vetorial para busca em milissegundos
+}
+
+// Tabela que armazena o "Card Premium" gerado pelo Agente Analista
+model InsightCard {
+  id                String   @id @default(uuid())
+  title             String
+  riskLevel         String   // "CRITICAL", "WARNING", "OPPORTUNITY"
+  commodity         String
+  analysis          String   @db.Text // O texto deduzido pela IA
+  recommendedAction String   @db.Text // Ação direta para o comprador
+  validUntil        DateTime // Prazo de validade daquela previsão
+  isRead            Boolean  @default(false)
+  createdAt         DateTime @default(now())
+}

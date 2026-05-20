@@ -12,7 +12,6 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview", icon: "◆" },
   { href: "/dashboard/insights", label: "Insights", icon: "◈" },
   { href: "/dashboard/chat", label: "Chat IA", icon: "◉" },
-  { href: "/dashboard/competitors", label: "Concorrentes", icon: "⬡" },
   { href: "/dashboard/agents", label: "Agentes", icon: "⚙" },
   { href: "/dashboard/reports", label: "Relatórios", icon: "▤" },
   { href: "/dashboard/settings", label: "Configurações", icon: "⊞" },
@@ -26,9 +25,25 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-6 border-b border-white/[0.06]">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-violet-500 flex items-center justify-center">
-            <span className="text-white text-sm font-bold">A</span>
-          </div>
+          <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#22d3ee" />
+                <stop offset="100%" stopColor="#8b5cf6" />
+              </linearGradient>
+              <filter id="logo-glow">
+                <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+            <circle cx="16" cy="16" r="13" stroke="url(#logo-grad)" strokeWidth="1.5" strokeDasharray="3 2" opacity="0.5" />
+            <path d="M7 16C7 11.0294 11.0294 7 16 7C20.9706 7 25 11.0294 25 16" stroke="url(#logo-grad)" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M16 25C11.0294 25 7 20.9706 7 16" stroke="url(#logo-grad)" strokeWidth="1.8" strokeLinecap="round" opacity="0.7" />
+            <circle cx="16" cy="16" r="4.5" fill="url(#logo-grad)" filter="url(#logo-glow)" />
+          </svg>
           <div>
             <h1 className="text-sm font-bold text-white tracking-tight">Atlas</h1>
             <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Intelligence</p>
@@ -42,27 +57,26 @@ export default function Sidebar() {
           const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
 
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} className="block select-none" prefetch={true}>
               <motion.div
-                whileHover={{ x: 2 }}
+                whileHover={{ x: 3 }}
                 whileTap={{ scale: 0.98 }}
                 className={`
-                  relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
-                  ${isActive
-                    ? "text-white bg-white/[0.08] border border-white/[0.08]"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]"
-                  }
+                  relative flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-colors duration-150 cursor-pointer
+                  ${isActive ? "text-white" : "text-zinc-400 hover:text-zinc-200"}
                 `}
               >
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-active"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-gradient-to-b from-cyan-400 to-violet-500"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+                    className="absolute inset-0 rounded-xl bg-white/[0.04] border border-white/[0.08] shadow-[0_0_20px_rgba(255,255,255,0.015)]"
+                    transition={{ type: "spring", stiffness: 550, damping: 38 }}
                   />
                 )}
-                <span className="text-xs opacity-60">{item.icon}</span>
-                {item.label}
+                <span className={`relative z-10 text-xs transition-colors duration-150 ${isActive ? "text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" : "opacity-60"}`}>
+                  {item.icon}
+                </span>
+                <span className="relative z-10 tracking-wide">{item.label}</span>
               </motion.div>
             </Link>
           );
