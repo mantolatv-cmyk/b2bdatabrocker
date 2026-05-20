@@ -60,6 +60,7 @@ export default function AgentsPage() {
   const [logs, setLogs] = useState<string[]>([]);
   const [agentResponse, setAgentResponse] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isIngesting, setIsIngesting] = useState(false);
 
   // Trigger Focused Scan call to DeepSeek
   const handleRunAgent = async (e: React.FormEvent) => {
@@ -117,6 +118,30 @@ export default function AgentsPage() {
     }
   };
 
+  const handleTriggerIngest = async () => {
+    setIsIngesting(true);
+    setError(null);
+    setLogs((prev) => [...prev, "📥 Iniciando varredura de portais e processamento semântico de notícias..."]);
+    try {
+      const res = await fetch("/api/agents/ingest", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setLogs((prev) => [
+          ...prev,
+          `✓ Sucesso: Artigo "${data.articleIngested || "Notícia Recente"}" processado pelo DeepSeek.`,
+          `✓ Vetor pgvector de 1536 dimensões persistido na tabela KnowledgeChunk (Status: ${data.queryOutcome}).`,
+          `📡 Fonte de Origem: ${data.sourceUrl || "RSS Feed"}`
+        ]);
+      } else {
+        setLogs((prev) => [...prev, "❌ Falha no processamento do agente ou gravação no banco."]);
+      }
+    } catch (e) {
+      setLogs((prev) => [...prev, "❌ Erro de conexão ao acionar o Agente Ingestor RAG."]);
+    } finally {
+      setIsIngesting(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -124,7 +149,6 @@ export default function AgentsPage() {
       transition={{ duration: 0.4 }}
       className="space-y-8 pb-12"
     >
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Agentes de IA</h1>
@@ -133,10 +157,20 @@ export default function AgentsPage() {
           </p>
         </div>
         
-        {/* Connection status badge */}
-        <div className="flex items-center gap-2 bg-emerald-500/[0.04] border border-emerald-500/20 px-3.5 py-1.5 rounded-full select-none">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[10px] text-emerald-400 font-mono font-bold uppercase tracking-wider">DeepSeek Conectado</span>
+        {/* Connection status and Ingestion action buttons */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-emerald-500/[0.04] border border-emerald-500/20 px-3.5 py-1.5 rounded-full select-none">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[10px] text-emerald-400 font-mono font-bold uppercase tracking-wider">DeepSeek Conectado</span>
+          </div>
+
+          <button
+            onClick={handleTriggerIngest}
+            disabled={isIngesting || isRunning}
+            className="px-4.5 py-2.5 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 disabled:opacity-50 text-white font-extrabold text-[10px] uppercase rounded-xl transition-all shadow-md select-none focus:outline-none"
+          >
+            {isIngesting ? "Ingerindo..." : "📥 Ingerir Notícias RAG"}
+          </button>
         </div>
       </div>
 
