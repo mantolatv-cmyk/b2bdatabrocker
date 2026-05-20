@@ -61,8 +61,41 @@ export default function AgentsPage() {
   const [agentResponse, setAgentResponse] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isIngesting, setIsIngesting] = useState(false);
+  const [diarioText, setDiarioText] = useState("");
+  const [taxInsights, setTaxInsights] = useState<any[]>([]);
 
   // Trigger Focused Scan call to DeepSeek
+  const handleTriggerIngest = async () => {
+    setIsIngesting(true);
+    setError(null);
+    setLogs((prev) => [...prev, "📥 Iniciando varredura de portais e processamento semântico de notícias..."]);
+    try {
+      const res = await fetch("/api/agents/ingest", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setLogs((prev) => [
+          ...prev,
+          `✓ Sucesso: Artigo "${data.articleIngested || "Notícia Recente"}" processado pelo DeepSeek.`,
+          `✓ Vetor pgvector de 1536 dimensões persistido na tabela KnowledgeChunk (Status: ${data.queryOutcome}).`,
+          `📡 Fonte de Origem: ${data.sourceUrl || "RSS Feed"}`
+        ]);
+      } else {
+        setLogs((prev) => [...prev, "❌ Falha no processamento do agente ou gravação no banco."]);
+      }
+    } catch (e) {
+      setLogs((prev) => [...prev, "❌ Erro de conexão ao acionar o Agente Ingestor RAG."]);
+    } finally {
+      setIsIngesting(false);
+    }
+  };
+
+  const handleAgentSelect = (id: string) => {
+    setSelectedAgent(id);
+    setAgentResponse(null);
+    setTaxInsights([]);
+    setLogs([]);
+  };
+
   const handleRunAgent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetInput.trim() || isRunning) return;
@@ -89,6 +122,40 @@ export default function AgentsPage() {
     });
 
     try {
+      // Se for o Agente Fiscal, roda a rota tributária específica
+      if (selectedAgent === "fiscal") {
+        setLogs((prev) => [...prev, "📄 Enviando texto do Diário Oficial para varredura de NCMs..."]);
+        const response = await fetch("/api/agents/tax/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ diarioOficialText: diarioText })
+        });
+
+        if (!response.ok) {
+          throw new Error("Erro ao processar Diário Oficial");
+        }
+
+        const data = await response.json();
+        
+        // Simular log stream de auditor
+        setTimeout(() => {
+          if (data.logs) {
+            data.logs.forEach((logStr: string, idx: number) => {
+              setTimeout(() => {
+                setLogs((prev) => [...prev, logStr]);
+              }, idx * 300);
+            });
+          }
+          
+          setTaxInsights(data.insights || []);
+          setLogs((prev) => [...prev, `✓ Sucesso: ${data.insights?.length || 0} alerta(s) tributário(s) gerado(s).`]);
+          setCurrentProgress(100);
+          setIsRunning(false);
+        }, 1500);
+        return;
+      }
+
+      // Outros agentes usam a rota comum
       const response = await fetch("/api/agents/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -118,28 +185,23 @@ export default function AgentsPage() {
     }
   };
 
-  const handleTriggerIngest = async () => {
-    setIsIngesting(true);
-    setError(null);
-    setLogs((prev) => [...prev, "📥 Iniciando varredura de portais e processamento semântico de notícias..."]);
-    try {
-      const res = await fetch("/api/agents/ingest", { method: "POST" });
-      if (res.ok) {
-        const data = await res.json();
-        setLogs((prev) => [
-          ...prev,
-          `✓ Sucesso: Artigo "${data.articleIngested || "Notícia Recente"}" processado pelo DeepSeek.`,
-          `✓ Vetor pgvector de 1536 dimensões persistido na tabela KnowledgeChunk (Status: ${data.queryOutcome}).`,
-          `📡 Fonte de Origem: ${data.sourceUrl || "RSS Feed"}`
-        ]);
-      } else {
-        setLogs((prev) => [...prev, "❌ Falha no processamento do agente ou gravação no banco."]);
-      }
-    } catch (e) {
-      setLogs((prev) => [...prev, "❌ Erro de conexão ao acionar o Agente Ingestor RAG."]);
-    } finally {
-      setIsIngesting(false);
-    }
+  const SIMULATED_DIARIO_OFICIAL = `DIÁRIO OFICIAL DO ESTADO - SEÇÃO I
+GABINETE DO SECRETÁRIO DE ESTADO DA FAZENDA
+
+RESOLUÇÃO SEFAZ Nº 430/2026
+Altera alíquotas de ICMS e regulamenta a Substituição Tributária (ST) para produtos da cesta básica.
+
+Artigo 1º - Fica reduzida a base de cálculo do ICMS incidente nas saídas internas de Leite UHT (código NCM 0401.20.10), de forma que a carga tributária resulte no percentual de 7% (sete por cento). A medida visa mitigar efeitos inflacionários da entressafra regional de laticínios.
+
+Artigo 2º - Fica reajustada a base de cálculo da pauta de Substituição Tributária (ST) para aves domésticas e carnes processadas. A margem de valor agregado (MVA) para Frango Inteiro congelado (NCM 0207.11.00) passará a contar com acréscimo de 5% sobre a tabela base a partir do próximo período de apuração.
+
+Artigo 3º - A alíquota unificada ad rem de circulação do Óleo Diesel S10 (NCM 2710.19.21) passa a vigorar com diferimento de 1,5% nas saídas internas para frotas rodoviárias de alimentos da cesta básica.
+
+Artigo 4º - Fica convocada a junta comercial de saneamento ambiental (CNPJ 00.123.456/0001-99) a prestar contas operacionais.`;
+
+  const handleSimulateDiario = () => {
+    setDiarioText(SIMULATED_DIARIO_OFICIAL);
+    setLogs((prev) => [...prev, "⚡ Texto simulado do Diário Oficial carregado no formulário."]);
   };
 
   return (
@@ -181,13 +243,13 @@ export default function AgentsPage() {
           return (
             <motion.div
               key={agent.id}
-              onClick={() => setSelectedAgent(agent.id)}
+              onClick={() => handleAgentSelect(agent.id)}
               whileHover={{ scale: 1.02 }}
               className={`
                 relative cursor-pointer rounded-2xl border p-5 space-y-4 hover:bg-white/[0.03] transition-all duration-300 flex flex-col justify-between
                 ${isActiveSelection 
                   ? "bg-white/[0.03] border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.06)]" 
-                  : "bg-white/[0.015] border-white/[0.04]"
+                  : "bg-white/[0.015] border-white/[0.015]"
                 }
               `}
             >
@@ -245,35 +307,61 @@ export default function AgentsPage() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">Foco da Análise / Alvo</label>
-              <input
-                type="text"
-                value={targetInput}
-                onChange={(e) => setTargetInput(e.target.value)}
-                placeholder="Ex: safra de café moído em MG, diesel no Sul, ST de lácteos em SP..."
-                disabled={isRunning}
-                className="w-full bg-black/20 border border-white/[0.08] hover:border-white/[0.15] focus:border-cyan-500/50 rounded-xl px-4 py-3 text-xs text-white focus:outline-none transition-all duration-150"
-              />
-              <p className="text-[9px] text-zinc-500 leading-normal">
-                Indique o insumo, mercadoria de supermercado ou estado para obter uma projeção estruturada e preditiva.
-              </p>
-            </div>
+            {selectedAgent === "fiscal" ? (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">Texto do Diário Oficial</label>
+                  <button
+                    type="button"
+                    onClick={handleSimulateDiario}
+                    className="text-[9px] text-cyan-400 font-mono font-bold hover:underline bg-cyan-400/5 px-2 py-1 rounded border border-cyan-500/10"
+                  >
+                    ⚡ Simular Diário (NCMs)
+                  </button>
+                </div>
+                <textarea
+                  value={diarioText}
+                  onChange={(e) => setDiarioText(e.target.value)}
+                  placeholder="Cole o extrato do Diário Oficial do Estado (SEFAZ/DOU) aqui contendo códigos NCM para realizar a auditoria..."
+                  disabled={isRunning}
+                  rows={8}
+                  className="w-full bg-black/20 border border-white/[0.08] hover:border-white/[0.15] focus:border-cyan-500/50 rounded-xl px-4 py-3 text-xs text-white focus:outline-none transition-all duration-150 font-mono resize-none"
+                />
+                <p className="text-[9px] text-zinc-500 leading-normal">
+                  O sistema aplicará Regex para extrair e criar recortes de NCMs conhecidos antes de consultar a IA.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">Foco da Análise / Alvo</label>
+                <input
+                  type="text"
+                  value={targetInput}
+                  onChange={(e) => setTargetInput(e.target.value)}
+                  placeholder="Ex: safra de café moído em MG, diesel no Sul, ST de lácteos em SP..."
+                  disabled={isRunning}
+                  className="w-full bg-black/20 border border-white/[0.08] hover:border-white/[0.15] focus:border-cyan-500/50 rounded-xl px-4 py-3 text-xs text-white focus:outline-none transition-all duration-150"
+                />
+                <p className="text-[9px] text-zinc-500 leading-normal">
+                  Indique o insumo, mercadoria de supermercado ou estado para obter uma projeção estruturada e preditiva.
+                </p>
+              </div>
+            )}
 
             <button
               type="submit"
-              disabled={!targetInput.trim() || isRunning}
+              disabled={isRunning || (selectedAgent === "fiscal" ? !diarioText.trim() : !targetInput.trim())}
               className="w-full bg-gradient-to-r from-cyan-500 to-violet-500 hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs py-3.5 px-6 rounded-xl transition-all shadow-[0_4px_20px_rgba(6,182,212,0.15)] flex items-center justify-center gap-2 select-none"
             >
               {isRunning ? (
                 <>
                   <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Orquestrando no DeepSeek...
+                  Auditando no DeepSeek...
                 </>
               ) : (
                 <>
-                  <span>⚡</span>
-                  Executar Varredura Focada
+                  <span>🔍</span>
+                  {selectedAgent === "fiscal" ? "Executar Varredura Fiscal" : "Executar Varredura Focada"}
                 </>
               )}
             </button>
@@ -329,7 +417,7 @@ export default function AgentsPage() {
 
       {/* ── Real-Time Response Analysis Result ── */}
       <AnimatePresence>
-        {agentResponse && (
+        {agentResponse && selectedAgent !== "fiscal" && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -413,6 +501,71 @@ export default function AgentsPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Real-Time Tax Agent Analysis Results ── */}
+      <AnimatePresence>
+        {selectedAgent === "fiscal" && taxInsights.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="space-y-5"
+          >
+            <div className="border-b border-white/[0.05] pb-3">
+              <h3 className="text-md font-bold text-white tracking-wide">📜 Alertas Tributários Identificados no Diário Oficial</h3>
+              <p className="text-[11px] text-zinc-500 mt-0.5">
+                Clique nos alertas abaixo para acionar envio imediato de recomendações contábeis
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {taxInsights.map((insight, idx) => (
+                <div
+                  key={idx}
+                  className={`
+                    p-5 rounded-2xl border bg-white/[0.015] hover:bg-white/[0.03] transition-all flex flex-col justify-between space-y-4
+                    ${insight.severity === "CRITICAL" ? "border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.03)]" : 
+                      insight.severity === "OPPORTUNITY" ? "border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.03)]" :
+                      "border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.03)]"}
+                  `}
+                >
+                  <div className="space-y-2.5">
+                    <div className="flex justify-between items-start">
+                      <span className={`px-2 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wider ${
+                        insight.severity === "CRITICAL" ? "bg-red-500/10 text-red-400 border border-red-500/20" :
+                        insight.severity === "OPPORTUNITY" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
+                        "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                      }`}>
+                        {insight.tipo_alteracao}
+                      </span>
+                      <span className="text-[10px] text-zinc-500 font-mono font-bold">{insight.ncm}</span>
+                    </div>
+
+                    <h4 className="font-bold text-sm text-white">{insight.productName}</h4>
+                    <p className="text-xs text-zinc-400 leading-relaxed font-normal">{insight.resumo_alerta}</p>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/[0.04] space-y-3">
+                    <div className="space-y-1">
+                      <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider block">Ação Recomendada</span>
+                      <p className="text-[11px] text-zinc-400 leading-normal">{insight.acao_recomendada}</p>
+                    </div>
+
+                    <a
+                      href={insight.whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/20 hover:border-emerald-500/30 text-emerald-400 font-extrabold text-[10px] uppercase rounded-lg transition-all flex items-center justify-center gap-1.5 select-none"
+                    >
+                      <span>💬</span> Notificar Compras WhatsApp
+                    </a>
+                  </div>
+                </div>
+              ))}
             </div>
           </motion.div>
         )}
