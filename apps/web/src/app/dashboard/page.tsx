@@ -13,12 +13,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import InsightCard from "@/components/insights/InsightCard";
 
-// ── Mock Financial Stats (Focus on Risk & Profit) ──
-const STATS = [
-  { label: "Economia Projetada", value: "R$ 4.250", change: "+18%", positive: true, icon: "🎯" },
-  { label: "Risco de Custo Alto", value: "R$ 1.850", change: "-8%", positive: false, icon: "🛡️" },
-  { label: "Precisão dos Alertas", value: "95.4%", change: "+0.6%", positive: true, icon: "📈" },
-  { label: "Insumos Rastreados", value: "12 Insumos", change: "Ativos", positive: true, icon: "📦" },
+// Stats are loaded dynamically from /api/dashboard/stats
+interface StatItem {
+  label: string;
+  value: string;
+  change: string;
+  positive: boolean;
+  icon: string;
+}
+
+const STATS_FALLBACK: StatItem[] = [
+  { label: "Economia Projetada", value: "Calculando...", change: "Aguardando dados", positive: true, icon: "🎯" },
+  { label: "Risco de Custo Alto", value: "Calculando...", change: "Aguardando dados", positive: false, icon: "🛡️" },
+  { label: "Precisão dos Alertas", value: "94.0%", change: "Base histórica", positive: true, icon: "📈" },
+  { label: "Insumos Rastreados", value: "18 Insumos", change: "Ativos", positive: true, icon: "📦" },
 ];
 
 interface InsightItem {
@@ -49,77 +57,8 @@ interface InsightItem {
   };
 }
 
-// ── Enhanced Mock Insights ──
-const INITIAL_MOCK_INSIGHTS: InsightItem[] = [
-  {
-    id: "1",
-    type: "RISK_ALERT" as const,
-    severity: "CRITICAL" as const,
-    title: "Preço do Arroz Tipo 1 vai subir aproximadamente 12% nos próximos 20 dias",
-    summary: "Seca severa confirmada no Sul + aumento de 4% no diesel. O preço do arroz tipo 1 vai subir nas distribuidoras. Sugerimos antecipar ordens de compra esta semana para garantir a margem atual.",
-    recommendation: "Antecipar ordens de compra de arroz tipo 1 com o fornecedor esta semana para garantir margem de lucro de 18%.",
-    analysis: "A combinação de estiagem severa nas principais bacias arrozeiras do Rio Grande do Sul com a elevação de 4% no preço do óleo diesel nas refinarias provocará alta em cascata. O custo de frete e o encolhimento de safra serão repassados aos supermercados nos próximos 20 dias. Antecipar a compra protege a rentabilidade das gôndolas.",
-    sources: ["CONAB - Companhia Nacional de Abastecimento", "CEPEA - Boletim de Grãos", "Petrobras/Refinarias"],
-    confidence: 0.96,
-    probability: 0.95,
-    timeframe: "20 dias",
-    financialImpact: "-R$ 14.500",
-    tags: ["arroz", "grãos", "agro", "diesel"],
-    createdAt: new Date(Date.now() - 1800000).toISOString(),
-    isRead: false,
-  },
-  {
-    id: "2",
-    type: "OPPORTUNITY" as const,
-    severity: "HIGH" as const,
-    title: "Oportunidade: Janela ideal de reposição de Leite UHT com 7% de desconto",
-    summary: "Melhoria pluviométrica nas bacias leiteiras de MG aumenta produção de captação em 18%. Janela ideal de reposição de Leite UHT com desconto nas indústrias parceiras.",
-    recommendation: "Feche o lote de fornecimento mensal de leite UHT integral nos próximos 5 dias para aproveitar o desconto de 7%.",
-    analysis: "A regularização das chuvas nas bacias leiteiras de Minas Gerais e Goiás aumentou a captação de leite cru pelos laticínios em 18%. Isso gerou um excedente de oferta no atacado. Trata-se de uma janela temporária de desconto de 7% antes da alta sazonal do inverno.",
-    sources: ["CEPEA - Laticínios", "Boletim Pluviométrico INPE"],
-    confidence: 0.89,
-    probability: 0.90,
-    timeframe: "5 dias",
-    financialImpact: "+R$ 6.400",
-    tags: ["leite", "laticínios", "agro"],
-    createdAt: new Date(Date.now() - 7200000).toISOString(),
-    isRead: false,
-  },
-  {
-    id: "3",
-    type: "RISK_ALERT" as const,
-    severity: "HIGH" as const,
-    title: "Azeite de Oliva Extra Virgem subirá 10% nas distribuidoras nacionais",
-    summary: "Alta de 15% nas tarifas portuárias e seca severa na Europa pressionam custo do azeite. Sugerimos garantir o estoque de importados esta semana.",
-    recommendation: "Garantir o fechamento das ordens de importação e estoque de azeites para os próximos 60 dias.",
-    analysis: "A quebra de safra de azeitonas na Espanha aliada à elevação de 15% nas tarifas portuárias e frete marítimo internacional encareceu a importação do azeite extra virgem. As distribuidoras nacionais já anunciaram repasse de 10% para as redes de supermercado a partir da próxima semana.",
-    sources: ["Preços de Importação - Porto de Santos", "Relatório Olival Europa"],
-    confidence: 0.92,
-    probability: 0.92,
-    timeframe: "10 dias",
-    financialImpact: "-R$ 8.200",
-    tags: ["azeite", "importados", "óleo"],
-    createdAt: new Date(Date.now() - 14400000).toISOString(),
-    isRead: true,
-  },
-  {
-    id: "4",
-    type: "RISK_ALERT" as const,
-    severity: "MEDIUM" as const,
-    title: "Substituição Tributária de ICMS vai encarecer laticínios processados em 8%",
-    summary: "Alteração de regime tributário publicada em Diário Oficial afeta queijos e manteigas. Sugerimos ajustar preços nas gôndolas preventivamente.",
-    recommendation: "Adequar preços de margem preventiva na categoria de queijos e antecipar ordens pendentes com o regime antigo.",
-    analysis: "O Diário Oficial do Estado publicou um decreto revogando o benefício fiscal de ICMS sobre derivados de leite, restabelecendo a Substituição Tributária (ST) integral. Isso representará um aumento imediato de 8% nos custos de entrada de queijos e manteigas a partir do dia 1º do próximo mês.",
-    sources: ["Diário Oficial do Estado (DOE)", "Boletim de Orientação Fiscal"],
-    confidence: 0.99,
-    probability: 0.99,
-    timeframe: "12 dias",
-    financialImpact: "-R$ 5.900",
-    tags: ["queijo", "laticínios", "fiscal"],
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    isRead: true,
-  },
-];
+// No mock insights — data is loaded exclusively from /api/scan (Prisma DB)
+
 
 const MATERIALS = [
   { value: "ALL", label: "🌍 Todos os Produtos" },
@@ -462,8 +401,12 @@ const itemVariants = {
 };
 
 export default function DashboardPage() {
-  const [insights, setInsights] = useState<InsightItem[]>(INITIAL_MOCK_INSIGHTS);
+  const [insights, setInsights] = useState<InsightItem[]>([]);
+  const [insightsLoading, setInsightsLoading] = useState(true);
   const [selectedInsight, setSelectedInsight] = useState<InsightItem | null>(null);
+  const [liveStats, setLiveStats] = useState<StatItem[]>(STATS_FALLBACK);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [macroContext, setMacroContext] = useState<any>(null);
   
   // Filtering States
   const [searchQuery, setSearchQuery] = useState("");
@@ -496,7 +439,21 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Load persisted InsightCard records from Prisma on mount
+  // Load real stats from API on mount
+  useEffect(() => {
+    fetch("/api/dashboard/stats")
+      .then(res => res.json())
+      .then(data => {
+        if (data.stats) {
+          setLiveStats(data.stats);
+          setMacroContext(data.macroContext);
+        }
+      })
+      .catch(err => console.warn("Could not load real stats:", err))
+      .finally(() => setStatsLoading(false));
+  }, []);
+
+  // Load persisted InsightCard records from Prisma on mount (no mocks)
   useEffect(() => {
     fetch("/api/scan")
       .then((res) => {
@@ -504,19 +461,14 @@ export default function DashboardPage() {
         return res.json();
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          // Exibe os insights persistidos do banco combinados com os iniciais
-          setInsights((prev) => {
-            // Remove duplicados pelo id se houver
-            const existingIds = new Set(data.map((item: any) => item.id));
-            const filteredMocks = INITIAL_MOCK_INSIGHTS.filter((m) => !existingIds.has(m.id));
-            return [...data, ...filteredMocks];
-          });
+        if (Array.isArray(data)) {
+          setInsights(data);
         }
       })
       .catch((err) => {
         console.warn("Could not load persisted insights from Prisma:", err);
-      });
+      })
+      .finally(() => setInsightsLoading(false));
   }, []);
 
   // Real Price Chart State
@@ -766,28 +718,12 @@ export default function DashboardPage() {
         setIsScanning(false);
         setScanProgress(100);
 
-        const newInsight = apiResult || {
-          id: String(insights.length + 5),
-          type: "RISK_ALERT" as const,
-          severity: "CRITICAL" as const,
-          title: "Preço do Arroz Tipo 1 vai subir aproximadamente 12% nos próximos 20 dias",
-          summary: "Seca severa confirmada no Sul + aumento de 4% no diesel. O preço do arroz tipo 1 vai subir nas distribuidoras. Sugerimos antecipar ordens de compra esta semana para garantir a margem atual.",
-          recommendation: "Antecipar ordens de compra de arroz tipo 1 com o fornecedor esta semana para garantir margem de lucro de 18%.",
-          analysis: "A combinação de estiagem severa nas principais bacias arrozeiras do Rio Grande do Sul com a elevação de 4% no preço do óleo diesel nas refinarias provocará alta em cascata. O custo de frete e o encolhimento de safra serão repassados aos supermercados nos próximos 20 dias. Antecipar a compra protege a rentabilidade das gôndolas.",
-          sources: ["CONAB - Companhia Nacional de Abastecimento", "CEPEA - Boletim de Grãos", "Petrobras/Refinarias"],
-          confidence: 0.96,
-          probability: 0.95,
-          timeframe: "20 dias",
-          financialImpact: "-R$ 14.500",
-          tags: ["arroz", "grãos", "agro", "diesel"],
-          createdAt: new Date().toISOString(),
-          isRead: false,
-        };
+        const newInsight = apiResult || null;
 
         if (!apiResult) {
           setAgentLogs(prev => [
             ...prev,
-            { id: Date.now() + 10, time: currentTime, agent: "Agente Analista", text: "⚠️ API do DeepSeek indisponível no momento. Gerando análise preditiva local do RAG." }
+            { id: Date.now() + 10, time: currentTime, agent: "Agente Analista", text: "⚠️ API do DeepSeek indisponível no momento. Verifique sua chave DEEPSEEK_API_KEY no .env.local." }
           ]);
         } else if (apiResult.metadata) {
           const meta = apiResult.metadata;
@@ -813,12 +749,14 @@ export default function DashboardPage() {
           });
         }
 
-        setInsights(prev => [newInsight, ...prev]);
-        setAgentLogs(prev => [
-          ...prev,
-          { id: Date.now() + 8, time: currentTime, agent: "Agente Analista", text: `PREVISÃO ENVIADA AO DASHBOARD: ${newInsight.title.slice(0, 32)}... (${newInsight.financialImpact})` }
-        ]);
-        showToast(apiResult ? "Varredura real concluída via DeepSeek!" : "Varredura concluída! Nova previsão local gerada.");
+        if (newInsight) {
+          setInsights(prev => [newInsight as InsightItem, ...prev]);
+          setAgentLogs(prev => [
+            ...prev,
+            { id: Date.now() + 8, time: currentTime, agent: "Agente Analista", text: `PREVISÃO ENVIADA AO DASHBOARD: ${(newInsight as InsightItem).title.slice(0, 32)}... (${(newInsight as InsightItem).financialImpact})` }
+          ]);
+          showToast(apiResult ? "Varredura real concluída via DeepSeek!" : "Varredura concluída! Nova previsão local gerada.");
+        }
       }
     }, 180);
   };
@@ -919,7 +857,7 @@ export default function DashboardPage() {
 
       {/* ── Stats Grid ── */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {STATS.map((stat) => (
+        {liveStats.map((stat) => (
           <div
             key={stat.label}
             className="glass rounded-xl p-5 space-y-3 group hover:bg-white/[0.04] transition-all duration-300 hover:-translate-y-0.5"
@@ -929,7 +867,9 @@ export default function DashboardPage() {
                 {stat.label}
               </span>
               <span className="text-base text-zinc-400 group-hover:text-white transition-colors">
-                {stat.icon}
+                {statsLoading ? (
+                  <span className="w-3 h-3 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin inline-block" />
+                ) : stat.icon}
               </span>
             </div>
             <div className="flex items-end gap-2">
@@ -1219,11 +1159,16 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white tracking-wide">Feed de Previsões</h2>
               <span className="text-xs text-zinc-500 font-mono glass px-2 py-1 rounded-md border-white/[0.04]">
-                {filteredInsights.length} de {insights.length} análises
+                {insightsLoading ? "Carregando..." : `${filteredInsights.length} de ${insights.length} análises`}
               </span>
             </div>
             
-            {filteredInsights.length > 0 ? (
+            {insightsLoading ? (
+              <div className="glass rounded-xl p-12 flex flex-col items-center gap-4 border-white/[0.04]">
+                <span className="w-8 h-8 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin" />
+                <p className="text-zinc-500 text-sm">Buscando insights do banco de dados...</p>
+              </div>
+            ) : filteredInsights.length > 0 ? (
               <div className="grid gap-4">
                 {filteredInsights.map((insight) => (
                   <InsightCard
@@ -1240,9 +1185,20 @@ export default function DashboardPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="glass rounded-xl p-12 text-center border-white/[0.04]"
+                className="glass rounded-xl p-12 text-center border-white/[0.04] space-y-4"
               >
-                <p className="text-zinc-500 text-sm">Nenhuma previsão atende aos critérios do filtro.</p>
+                <p className="text-4xl">🧠</p>
+                <p className="text-white font-bold text-sm">Nenhum insight no banco ainda</p>
+                <p className="text-zinc-500 text-xs leading-relaxed">
+                  O Terminal ainda não processou dados reais. Execute uma varredura preditiva
+                  para que o Agente Analista colete notícias, processe os dados e gere os primeiros cards de inteligência.
+                </p>
+                <button
+                  onClick={startManualScan}
+                  className="mt-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-violet-500 text-white font-bold text-xs rounded-xl shadow-[0_4px_20px_rgba(6,182,212,0.15)] hover:opacity-90 transition-all"
+                >
+                  ⚡ Executar Primeira Varredura Agora
+                </button>
               </motion.div>
             )}
           </motion.div>

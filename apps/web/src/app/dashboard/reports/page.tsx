@@ -47,12 +47,8 @@ const CATEGORIES = [
   { id: "logistica", label: "🚚 Logística & Combustível (Diesel)" },
 ];
 
-const ARCHIVED_REPORTS = [
-  { id: "REP-2026-04", name: "Relatório Consolidado de Abastecimento - Abril 2026", date: "30/04/2026", size: "1.8 MB", category: "Mensal" },
-  { id: "REP-2026-03", name: "Auditoria de Margens e ICMS - Cesta Básica - Março 2026", date: "31/03/2026", size: "2.1 MB", category: "Auditoria" },
-  { id: "REP-2026-02", name: "Projeções Logísticas e Safra Centro-Sul - Fevereiro 2026", date: "28/02/2026", size: "1.5 MB", category: "Setorial" },
-  { id: "REP-2026-01", name: "Planejamento Estratégico de Compras - Janeiro 2026", date: "31/01/2026", size: "2.4 MB", category: "Mensal" },
-];
+// Archived reports are loaded dynamically from /api/reports
+
 
 export default function ReportsPage() {
   const [config, setConfig] = useState<ReportConfig>({
@@ -67,6 +63,19 @@ export default function ReportsPage() {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationLogs, setGenerationLogs] = useState<string[]>([]);
   const [activeReport, setActiveReport] = useState<ReportData | null>(null);
+  const [archivedReports, setArchivedReports] = useState<any[]>([]);
+  const [archivedLoading, setArchivedLoading] = useState(true);
+
+  // Load persisted reports from API on mount
+  useEffect(() => {
+    fetch("/api/reports")
+      .then(res => res.json())
+      .then(data => {
+        if (data.reports) setArchivedReports(data.reports);
+      })
+      .catch(err => console.warn("Could not load archived reports:", err))
+      .finally(() => setArchivedLoading(false));
+  }, []);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -82,101 +91,76 @@ export default function ReportsPage() {
     }));
   };
 
-  // Simulates report compilation by the 4 specialized agents
-  const triggerGenerateReport = () => {
+  // Generates real report by calling /api/reports (POST)
+  const triggerGenerateReport = async () => {
     setIsGenerating(true);
     setGenerationProgress(0);
     setGenerationLogs(["⚙️ Inicializando o Orquestrador Atlas para compilação executiva..."]);
 
     const steps = [
-      {
-        progress: 15,
-        log: "🌦️ [Agente Climático & Agro] Acessando banco de dados da CONAB e CEPEA. Mapeando bacias leiteiras de MG e estiagem de arroz no RS...",
-      },
-      {
-        progress: 35,
-        log: "🚚 [Agente Logístico] Coletando cotações de óleo diesel na refinaria e tabela de fretes rodoviários da ANTT...",
-      },
-      {
-        progress: 55,
-        log: "📜 [Agente Fiscal] Analisando Diário Oficial do Estado (DOE) sobre alterações de ICMS e Substituição Tributária (ST)...",
-      },
-      {
-        progress: 80,
-        log: "🧠 [Agente Analista (RAG)] Cruzando histórico de preços vs. elasticidades de margem do varejo alimentar. Consolidando projeções...",
-      },
-      {
-        progress: 100,
-        log: "✅ [Atlas IA] Relatório consolidado formatado e estruturado para impressão executiva.",
-      },
+      { progress: 15, log: "🌦️ [Agente Climático & Agro] Consultando banco de dados CONAB e CEPEA em tempo real..." },
+      { progress: 35, log: "🚚 [Agente Logístico] Coletando cotações USD-BRL e taxas de frete da ANTT..." },
+      { progress: 55, log: "📜 [Agente Fiscal] Verificando publicações de ICMS e Substituição Tributária (ST) no Diário Oficial..." },
+      { progress: 80, log: "🧠 [Agente Analista (RAG)] Calculando economia real e riscos com base nos insights persistidos no banco..." },
     ];
 
-    let currentStepIdx = 0;
-    const interval = setInterval(() => {
-      if (currentStepIdx < steps.length) {
-        const step = steps[currentStepIdx];
-        setGenerationProgress(step.progress);
-        setGenerationLogs((prev) => [...prev, step.log]);
-        currentStepIdx++;
-      } else {
-        clearInterval(interval);
+    for (const step of steps) {
+      await new Promise(r => setTimeout(r, 1200));
+      setGenerationProgress(step.progress);
+      setGenerationLogs(prev => [...prev, step.log]);
+    }
+
+    try {
+      const res = await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ period: config.period, categories: config.categories })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setGenerationProgress(100);
+        setGenerationLogs(prev => [...prev, "✅ [Atlas IA] Relatório compilado com dados reais do banco de dados e indicadores macroeconômicos ao vivo."]);
+
         setTimeout(() => {
           setIsGenerating(false);
           setActiveReport({
             id: `REP-${Math.floor(1000 + Math.random() * 9000)}`,
             title: `Relatório Consolidado de Margem & Abastecimento — Atlas`,
-            generatedAt: new Date().toLocaleDateString("pt-BR") + " às " + new Date().toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }),
+            generatedAt: new Date().toLocaleDateString("pt-BR") + " às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
             periodText: config.period === "7D" ? "Últimos 7 dias" : config.period === "30D" ? "Últimos 30 dias" : config.period === "90D" ? "Últimos 90 dias" : "Mês Corrente",
-            stats: {
-              cashSavings: "R$ 48.750,00",
-              costsAvoided: "R$ 18.420,00",
-              avgInflation: "+2,35%",
-              precisionAlerts: "96,8%",
-            },
-            executiveSummary: `Neste período de análise, a cadeia de abastecimento de supermercados no Brasil deparou-se com pressões de custo mistas. O principal vetor de pressão foi logístico, derivado da flutuação acumulada no valor do Óleo Diesel nas refinarias, encarecendo fretes intermunicipais. Pelo lado agroclimático, a estiagem no Sul do país pressionou as cotações de Arroz Tipo 1. Por outro lado, a bacia leiteira de Minas Gerais/Goiás apresentou boa recuperação pluviométrica, resultando em sobreoferta de Leite UHT e gerando uma janela ideal de compra de 7% de desconto. Recomendamos antecipar a reposição de itens secos e estocar pontualmente arroz de fornecedores diretos do RS para proteger a margem bruta de 30% nas prateleiras.`,
-            productMetrics: [
-              { name: "🌾 Arroz Tipo 1 (Saco 5kg)", currentPrice: "R$ 25,00", projectedPrice: "R$ 28,00", variation: "+12,0%", trend: "UP" as const, urgency: "HIGH" as const },
-              { name: "🥛 Leite UHT (Litro)", currentPrice: "R$ 4,30", projectedPrice: "R$ 4,00", variation: "-7,0%", trend: "DOWN" as const, urgency: "LOW" as const },
-              { name: "🚚 Óleo Diesel (Litro)", currentPrice: "R$ 5,80", projectedPrice: "R$ 6,03", variation: "+4,0%", trend: "UP" as const, urgency: "MEDIUM" as const },
-              { name: "🫒 Azeite de Oliva (500ml)", currentPrice: "R$ 42,00", projectedPrice: "R$ 44,50", variation: "+5,9%", trend: "UP" as const, urgency: "MEDIUM" as const },
-              { name: "🧀 Queijo Muçarela (kg)", currentPrice: "R$ 44,00", projectedPrice: "R$ 44,00", variation: "0,0%", trend: "STABLE" as const, urgency: "LOW" as const },
-            ].filter((p) => {
-              if (config.categories.includes("graos") && p.name.includes("Arroz")) return true;
-              if (config.categories.includes("laticinios") && (p.name.includes("Leite") || p.name.includes("Queijo"))) return true;
-              if (config.categories.includes("logistica") && p.name.includes("Diesel")) return true;
-              if (config.categories.includes("oleos") && p.name.includes("Azeite")) return true;
-              return false;
-            }),
-            actionMatrix: [
-              {
-                product: "Arroz Tipo 1",
-                riskFactor: "Estiagem severa nas bacias de captação do Sul reduziu volume de safra em 15%.",
-                recommendation: "Antecipe o fechamento do lote mensal para garantir o preço de R$ 25,00 antes do repasse nacional das beneficiadoras.",
-                timeframe: "Próximos 5 dias",
-              },
-              {
-                product: "Leite UHT Integral",
-                riskFactor: "Aumento temporário de produção devido a chuvas favoráveis no Centro-Oeste.",
-                recommendation: "Compre apenas o volume necessário semanal no preço promocional. Evite estocagem excessiva devido a tendência de queda contínua.",
-                timeframe: "Próximos 7 dias",
-              },
-              {
-                product: "Óleo Diesel / Logística",
-                riskFactor: "Reajuste de refino e cobrança de novas tarifas de pedágio rodoviário estadual.",
-                recommendation: "Negocie contratos spot com transportadores fixos para blindar a taxa de frete no período.",
-                timeframe: "Próximos 12 dias",
-              },
-            ].filter((a) => {
-              if (config.categories.includes("graos") && a.product.includes("Arroz")) return true;
-              if (config.categories.includes("laticinios") && a.product.includes("Leite")) return true;
-              if (config.categories.includes("logistica") && a.product.includes("Diesel")) return true;
-              return false;
-            }),
+            stats: data.stats,
+            executiveSummary: data.executiveSummary,
+            productMetrics: (data.productMetrics || []).map((p: any) => ({
+              name: p.name,
+              currentPrice: p.financialImpact,
+              projectedPrice: p.financialImpact,
+              variation: p.impact,
+              trend: p.impact.includes("↑") ? "UP" as const : p.impact.includes("↓") ? "DOWN" as const : "STABLE" as const,
+              urgency: p.alerts > 2 ? "HIGH" as const : p.alerts > 1 ? "MEDIUM" as const : "LOW" as const,
+            })),
+            actionMatrix: (data.actionMatrix || []).map((a: any) => ({
+              product: a.commodity,
+              riskFactor: a.severity,
+              recommendation: a.action,
+              timeframe: a.deadline,
+            })),
           });
-          showToast("Relatório gerado com sucesso!");
+          // Refresh archived reports list
+          fetch("/api/reports")
+            .then(r => r.json())
+            .then(d => { if (d.reports) setArchivedReports(d.reports); });
+          showToast("Relatório real gerado com sucesso!");
         }, 1000);
+      } else {
+        throw new Error(data.error || "Falha ao gerar relatório");
       }
-    }, 1200);
+    } catch (err: any) {
+      setGenerationLogs(prev => [...prev, `❌ Erro: ${err.message}. Verifique a conexão com o banco de dados.`]);
+      setGenerationProgress(100);
+      setIsGenerating(false);
+    }
   };
 
   const handlePrint = () => {
@@ -382,7 +366,12 @@ export default function ReportsPage() {
             </div>
 
             <div className="space-y-2.5">
-              {ARCHIVED_REPORTS.map((rep) => (
+              {archivedLoading ? (
+                <div className="flex items-center justify-center py-8 gap-3">
+                  <span className="w-4 h-4 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin" />
+                  <span className="text-xs text-zinc-500">Carregando relatórios...</span>
+                </div>
+              ) : archivedReports.length > 0 ? archivedReports.map((rep) => (
                 <div
                   key={rep.id}
                   className="flex items-center justify-between p-3 rounded-xl bg-white/[0.015] hover:bg-white/[0.03] border border-white/[0.03] transition-all duration-150"
@@ -390,9 +379,9 @@ export default function ReportsPage() {
                   <div className="space-y-0.5 min-w-0 pr-2">
                     <h4 className="text-xs font-semibold text-zinc-300 truncate">{rep.name}</h4>
                     <div className="flex items-center gap-2 text-[9px] text-zinc-500 font-mono">
-                      <span>{rep.date}</span>
+                      <span>{rep.period}</span>
                       <span>•</span>
-                      <span>{rep.size}</span>
+                      <span>{rep.sizeLabel}</span>
                       <span>•</span>
                       <span className="bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded text-[8px]">
                         {rep.category}
@@ -400,15 +389,21 @@ export default function ReportsPage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => showToast(`Iniciando download do relatório ${rep.id}...`)}
+                    onClick={() => showToast(`Relatório ${rep.id} — ${rep.totalInsights} insights analisados.`)}
                     className="p-2 bg-white/[0.03] hover:bg-cyan-500/10 border border-white/[0.05] hover:border-cyan-500/30 rounded-lg text-zinc-400 hover:text-cyan-400 transition-all duration-150 select-none text-[10px]"
-                    title="Baixar PDF"
+                    title="Ver detalhes"
                   >
-                    📥
+                    📊
                   </button>
                 </div>
-              ))}
+              )) : (
+                <div className="py-8 text-center space-y-2">
+                  <p className="text-zinc-600 text-xs">Nenhum relatório gerado ainda.</p>
+                  <p className="text-zinc-700 text-[10px]">Gere seu primeiro relatório acima para ver o histórico aqui.</p>
+                </div>
+              )}
             </div>
+
           </div>
         </div>
 

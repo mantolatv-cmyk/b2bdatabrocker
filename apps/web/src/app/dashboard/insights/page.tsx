@@ -367,7 +367,7 @@ export default function InsightsPage() {
                 <div className="grid grid-cols-3 gap-3 p-4 rounded-xl bg-white/[0.01] border border-white/[0.04]">
                   <div>
                     <span className="text-[9px] text-zinc-500 uppercase font-mono block">Ocorrência</span>
-                    <span className="text-sm font-bold text-cyan-400 font-mono">92%</span>
+                    <span className="text-sm font-bold text-cyan-400 font-mono">{Math.round((selectedInsight.probability ?? 0.92) * 100)}%</span>
                   </div>
                   <div>
                     <span className="text-[9px] text-zinc-500 uppercase font-mono block">Janela para Ação</span>
