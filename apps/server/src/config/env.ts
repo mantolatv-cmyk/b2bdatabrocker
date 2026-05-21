@@ -23,6 +23,10 @@ const envSchema = z.object({
   OPENAI_EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),
   OPENAI_COMPLETION_MODEL: z.string().default('gpt-4o'),
 
+  // DeepSeek Fallback
+  DEEPSEEK_API_KEY: z.string().optional(),
+  DEEPSEEK_API_URL: z.string().optional(),
+
   // Server
   PORT: z.coerce.number().default(4000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

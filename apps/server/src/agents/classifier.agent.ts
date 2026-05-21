@@ -48,32 +48,37 @@ export class ClassifierAgent implements IAgent {
     let itemsProcessed = 0;
     const startTime = Date.now();
 
+    // Limit classifications to 15 during manual runs to prevent timeouts
+    const limit = payload.triggeredBy === 'manual' ? 15 : 50;
+
     // Fetch unprocessed raw data
     const rawItems = await this.prisma.rawData.findMany({
       where: { isProcessed: false, isDiscarded: false },
       orderBy: { collectedAt: 'asc' },
-      take: 50,
+      take: limit,
     });
 
-    log.info({ count: rawItems.length }, 'Classification started');
+    log.info({ count: rawItems.length, limit, trigger: payload.triggeredBy }, 'Classification started');
 
     // Process in batches
     for (let i = 0; i < rawItems.length; i += BATCH_SIZE) {
       const batch = rawItems.slice(i, i + BATCH_SIZE);
 
-      for (const item of batch) {
-        try {
-          await this.classifyItem(item.id, item.content, item.title ?? '');
-          itemsProcessed++;
-        } catch (error) {
-          errors.push({
-            code: 'CLASSIFICATION_FAILED',
-            message: `Item ${item.id}: ${(error as Error).message}`,
-            retryable: true,
-            context: { rawDataId: item.id },
-          });
-        }
-      }
+      await Promise.all(
+        batch.map(async (item) => {
+          try {
+            await this.classifyItem(item.id, item.content, item.title ?? '');
+            itemsProcessed++;
+          } catch (error) {
+            errors.push({
+              code: 'CLASSIFICATION_FAILED',
+              message: `Item ${item.id}: ${(error as Error).message}`,
+              retryable: true,
+              context: { rawDataId: item.id },
+            });
+          }
+        })
+      );
     }
 
     return {
@@ -91,6 +96,7 @@ export class ClassifierAgent implements IAgent {
       systemPrompt: CLASSIFICATION_PROMPT,
       messages: [{ role: 'user', content: `TÍTULO: ${title}\n\nCONTEÚDO:\n${content.slice(0, 3000)}` }],
       temperature: 0.2,
+      responseFormat: { type: 'json_object' },
     });
 
     let classification: {
@@ -132,7 +138,7 @@ export class ClassifierAgent implements IAgent {
     const embeddingStr = `[${embedding.join(',')}]`;
 
     await this.prisma.$executeRawUnsafe(
-      `INSERT INTO vector_knowledge (id, raw_data_id, content, summary, embedding, category, relevance_score, created_at)
+      `INSERT INTO vector_knowledge (id, "rawDataId", content, summary, embedding, category, "relevanceScore", "createdAt")
        VALUES ($1, $2, $3, $4, $5::vector, $6, $7, NOW())`,
       `vk_${id}`,
       id,

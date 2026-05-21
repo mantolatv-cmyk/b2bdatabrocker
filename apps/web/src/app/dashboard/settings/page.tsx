@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ALL_INSUMOS, INSUMOS_COUNT, getCategoryLabel, CATEGORIES } from "@/lib/insumos";
 
 type SettingsTab = "GERAL" | "ALERTAS" | "IA" | "FONTES";
 
@@ -34,24 +35,10 @@ interface SourceSettings {
 }
 
 const STAPLES_OPTIONS = [
-  { id: "arroz", label: "🌾 Arroz Tipo 1" },
-  { id: "feijao", label: "🫘 Feijão Carioca" },
-  { id: "oleo", label: "🌻 Óleo de Soja" },
-  { id: "leite", label: "🥛 Leite UHT" },
-  { id: "cafe", label: "☕ Café Almofada" },
-  { id: "carne", label: "🥩 Alcatra Bovina" },
-  { id: "azeite", label: "🫒 Azeite de Oliva" },
-  { id: "trigo", label: "🍞 Pão de Forma" },
-  { id: "acucar", label: "🍬 Açúcar Refinado" },
-  { id: "queijo", label: "🧀 Queijo Muçarela" },
-  { id: "cerveja", label: "🍺 Cerveja Lata" },
-  { id: "diesel", label: "🚚 Óleo Diesel" },
-  { id: "frango", label: "🍗 Frango Inteiro" },
-  { id: "sabao", label: "🫧 Sabão em Pó" },
-  { id: "margarina", label: "🧈 Margarina" },
-  { id: "macarrao", label: "🍝 Macarrão Espaguete" },
-  { id: "cremedental", label: "🪥 Creme Dental" },
-  { id: "papelhigienico", label: "🧻 Papel Higiênico" },
+  ...ALL_INSUMOS.map(i => ({
+    id: i.id,
+    label: `${i.emoji} ${i.name}`,
+  })),
 ];
 
 const STATES_OPTIONS = [

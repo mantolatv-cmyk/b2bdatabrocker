@@ -79,6 +79,11 @@ export class EmbeddingService {
    * Calls OpenAI embeddings API with exponential backoff retry.
    */
   private async callWithRetry(texts: string[], attempt = 1): Promise<number[][]> {
+    if (env.OPENAI_API_KEY === 'sk-placeholder') {
+      log.warn({ count: texts.length }, 'Using dummy embeddings for sk-placeholder API key');
+      return texts.map(() => Array.from({ length: 1536 }, () => Math.random() - 0.5));
+    }
+
     try {
       const response = await this.client.embeddings.create({
         model: this.model,

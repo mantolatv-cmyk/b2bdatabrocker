@@ -38,3 +38,6 @@ yarn-error.log*
 # Cache
 .cache/
 *.tsbuildinfo
+
+# pgvector build artifacts
+pgvector-build/

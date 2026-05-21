@@ -53,13 +53,57 @@ async function bootstrap() {
     await orchestrator.runPipeline('cron');
   });
 
-  // Health check endpoint (simple HTTP)
+  // Health check and pipeline endpoints (simple HTTP)
   const { createServer } = await import('http');
   const server = createServer(async (req, res) => {
-    if (req.url === '/health') {
+    // Basic CORS support
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/health') {
       const health = await orchestrator.healthCheckAll();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok', agents: health }));
+    } else if (req.method === 'POST' && req.url === '/pipeline/run') {
+      let body = '';
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
+
+      req.on('end', async () => {
+        try {
+          const parsed = body ? JSON.parse(body) : {};
+          const insumoId = parsed.insumoId;
+          const insumoName = parsed.insumoName;
+          const params = insumoId && insumoId !== 'ALL' ? { insumoId, insumoName } : undefined;
+
+          log.info({ insumoId }, 'Manual pipeline execution requested via API');
+          const results = await orchestrator.runPipeline('manual', params);
+
+          // Find the newest InsightCard created
+          const latestCard = await prisma.insightCard.findFirst({
+            orderBy: { createdAt: 'desc' },
+          });
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            results: Object.fromEntries([...results.entries()].map(([k, v]) => [k, v.success])),
+            card: latestCard
+          }));
+        } catch (err) {
+          log.error({ err }, 'Error running manual pipeline');
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: (err as Error).message }));
+        }
+      });
     } else {
       res.writeHead(404);
       res.end('Not found');

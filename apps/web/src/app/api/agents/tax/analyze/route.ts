@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         relevant: false,
-        message: "Os NCMs encontrados não correspondem a nenhuma das 18 commodities monitoradas. Execução poupada.",
+        message: "Os NCMs encontrados não correspondem a nenhuma das commodities monitoradas. Execução poupada.",
         insights: [],
         logs: [...logs, "⏹️ Varredura finalizada sem acionamento de IA (economia de custos)."]
       });

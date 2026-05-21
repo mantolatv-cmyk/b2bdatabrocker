@@ -348,9 +348,7 @@ model KnowledgeChunk {
   publishedAt         DateTime
   createdAt           DateTime                    @default(now())
 
-  // Nota: O índice HNSW para busca vetorial é criado via SQL raw
-  // (não suportado declarativamente pelo Prisma):
-  // CREATE INDEX idx_knowledge_chunk_embedding ON "KnowledgeChunk" USING hnsw (embedding vector_cosine_ops);
+  @@index([embedding]) // Indexação vetorial para busca em milissegundos
 }
 
 // Tabela que armazena o "Card Premium" gerado pelo Agente Analista

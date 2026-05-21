@@ -28,10 +28,13 @@ export class ScraperService {
 
   constructor() {
     this.rssParser = new Parser({
-      timeout: 10_000,
-      headers: { 'User-Agent': 'B2B-DataBroker-Bot/1.0' },
+      timeout: 15_000,
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+      },
     });
-    this.userAgent = 'B2B-DataBroker-Bot/1.0 (+https://databroker.app)';
+    this.userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
   }
 
   /**
@@ -94,7 +97,7 @@ export class ScraperService {
         publishedAt: item.pubDate ? new Date(item.pubDate) : undefined,
         metadata: {
           feedTitle: feed.title,
-          author: item.creator ?? item.author,
+          author: item.creator ?? item['author'],
           categories: item.categories,
         },
       }));

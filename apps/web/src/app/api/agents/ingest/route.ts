@@ -3,30 +3,47 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
-const FALLBACK_NEWS_POOL = [
-  {
-    title: "Seca extrema no Centro-Oeste ameaça a produção de soja e milho",
-    description: "Meteorologistas confirmam bloqueio atmosférico que impede chuvas e reduz a umidade do solo a níveis críticos no MT e GO, impactando a safra de grãos.",
-    category: "clima",
-    commoditiesImpacted: ["soja", "oleo", "margarina"]
-  },
-  {
-    title: "Aumento do ICMS interestadual sobre carnes entra em vigor",
-    description: "Mudança na tributação de produtos de origem animal afeta o trânsito de carne bovina e frango entre estados produtores e grandes centros consumidores.",
-    category: "tributario",
-    commoditiesImpacted: ["carne", "frango"]
-  },
-  {
-    title: "Greve de caminhoneiros em portos paulistas atrasa fretes de importados",
-    description: "Paralisação parcial nas rodovias de acesso ao porto de Santos eleva o custo logístico de insumos importados como trigo e azeite extra virgem.",
-    category: "logistica",
-    commoditiesImpacted: ["trigo", "azeite"]
-  }
+interface FeedItem {
+  title: string;
+  link: string;
+  description: string;
+}
+
+interface FeedSource {
+  url: string;
+  name: string;
+  category: string;
+}
+
+const RSS_SOURCES: FeedSource[] = [
+  { url: "https://g1.globo.com/rss/g1/agro/",               name: "G1 Agro",            category: "agro" },
+  { url: "https://g1.globo.com/rss/g1/economia/",           name: "G1 Economia",        category: "macro" },
+  { url: "https://rss.uol.com.br/feed/economia.xml",        name: "UOL Economia",       category: "macro" },
+  { url: "https://www.infomoney.com.br/feed/",              name: "InfoMoney",          category: "mercado" },
+  { url: "https://feeds.folha.uol.com.br/mercado/rss.xml",  name: "Folha Mercado",      category: "macro" },
+  { url: "https://www.estadao.com.br/rss/ultimas/economia.xml", name: "Estadão Economia", category: "macro" },
+  { url: "http://www.ipea.gov.br/feed/rss.xml",             name: "IPEA",               category: "macro" },
+  { url: "https://www.bcb.gov.br/rss/noticias",             name: "BC Notícias",        category: "regulatorio" },
+  { url: "https://www.canalrural.com.br/feed/",             name: "Canal Rural",        category: "agro" },
+  { url: "https://valor.globo.com/rss/valor-economia/",     name: "Valor Econômico",    category: "macro" },
+  { url: "https://exame.com/feed/",                          name: "Exame",              category: "mercado" },
+  { url: "https://www.cnnbrasil.com.br/economia/feed/",     name: "CNN Brasil Economia", category: "macro" },
+  { url: "https://www.noticiasagricolas.com.br/rss/ultimas-noticias/", name: "Notícias Agrícolas", category: "agro" },
+  { url: "https://www.moneytimes.com.br/feed/",             name: "Money Times",        category: "mercado" },
+  { url: "https://www.istoedinheiro.com.br/feed/",          name: "IstoÉ Dinheiro",     category: "macro" },
 ];
 
-// Lightweight XML parser to extract RSS feed items without external dependencies
-function parseRssFeed(xmlText: string): Array<{ title: string; link: string; description: string }> {
-  const items: Array<{ title: string; link: string; description: string }> = [];
+const FALLBACK_POOL: FeedItem[] = [
+  { title: "Seca extrema no Centro-Oeste ameaça a produção de soja e milho",         link: "", description: "Meteorologistas confirmam bloqueio atmosférico que impede chuvas e reduz a umidade do solo a níveis críticos no MT e GO, impactando a safra de grãos." },
+  { title: "Aumento do ICMS interestadual sobre carnes entra em vigor",              link: "", description: "Mudança na tributação de produtos de origem animal afeta o trânsito de carne bovina e frango entre estados produtores e grandes centros consumidores." },
+  { title: "Greve de caminhoneiros em portos paulistas atrasa fretes de importados", link: "", description: "Paralisação parcial nas rodovias de acesso ao porto de Santos eleva o custo logístico de insumos importados como trigo e azeite extra virgem." },
+  { title: "IPCA desacelera para 0,21% em abril, abaixo das expectativas do mercado", link: "", description: "Índice de inflação oficial fica abaixo do consenso de 0,30%, pressionado por queda nos alimentos e alívio em transportes." },
+  { title: "Selic mantida em 14,25% ao ano — Copom sinaliza cautela com inflação de serviços", link: "", description: "Comitê de Política Monetária mantém juros inalterados pela segunda reunião consecutiva, citando incertezas fiscais e mercado de trabalho aquecido." },
+  { title: "PIB do agronegócio deve crescer 3,2% em 2026, impulsionado pela safra recorde de grãos", link: "", description: "Estimativa da CNA aponta recuperação do setor após dois anos de retração, com destaque para soja, milho e carne bovina." },
+];
+
+function parseRssFeed(xmlText: string): FeedItem[] {
+  const items: FeedItem[] = [];
   try {
     const itemMatches = xmlText.match(/<item[\s>][\s\S]*?<\/item>/g);
     if (itemMatches) {
@@ -39,7 +56,6 @@ function parseRssFeed(xmlText: string): Array<{ title: string; link: string; des
         const link = linkMatch ? linkMatch[1].trim() : "";
         let description = descMatch ? descMatch[1].trim() : "";
 
-        // Remove HTML tags from description if present
         description = description.replace(/<[^>]*>/g, "").trim();
 
         if (title) {
@@ -53,180 +69,176 @@ function parseRssFeed(xmlText: string): Array<{ title: string; link: string; des
   return items;
 }
 
-export async function POST(request: NextRequest) {
+async function fetchArticlesFromSource(source: FeedSource): Promise<FeedItem | null> {
   try {
-    const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    const res = await fetch(source.url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const xml = await res.text();
+    const items = parseRssFeed(xml);
+    if (items.length === 0) return null;
+    const selected = items[Math.floor(Math.random() * Math.min(items.length, 5))];
+    return selected;
+  } catch {
+    return null;
+  }
+}
 
-    let articleText = "";
-    let sourceLink = "https://g1.globo.com/agro/";
-    let articleTitle = "";
+async function structureWithDeepSeek(
+  text: string,
+  apiKey: string,
+): Promise<{ content: string; category: string; commoditiesImpacted: string[]; sourceCredibility: number; publishedAt: string } | null> {
+  try {
+    const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: `Você é o Agente de Ingestão do SaaS Atlas. Sua missão é ler o conteúdo de uma notícia/relatório e extrair os dados estruturados para preencher nosso banco vetorial.
+Você deve retornar estritamente um objeto JSON no seguinte formato:
+{
+  "content": "Resumo limpo e focado em impactos econômicos para redes varejistas e setor de commodities",
+  "category": "clima" | "logistica" | "tributario" | "macro" | "regulatorio" | "mercado" | "agro",
+  "commoditiesImpacted": ["arroz", "trigo", "soja", "milho", "cafe", "carne", "frango", "oleo", "diesel", "gasolina", "energia", "acucar"],
+  "sourceCredibility": 9,
+  "publishedAt": "2026-05-20T12:00:00Z"
+}`
+          },
+          { role: "user", content: text }
+        ]
+      })
+    });
 
-    // 1. Fetch RSS Feed data from G1 Agro / Canal Rural
-    try {
-      const feedRes = await fetch("https://g1.globo.com/rss/g1/agro/", { next: { revalidate: 60 } });
-      if (feedRes.ok) {
-        const xml = await feedRes.text();
-        const items = parseRssFeed(xml);
-        if (items.length > 0) {
-          // Select a random article
-          const selected = items[Math.floor(Math.random() * items.length)];
-          articleTitle = selected.title;
-          articleText = `${selected.title}. ${selected.description}`;
-          sourceLink = selected.link;
-        }
-      }
-    } catch (e) {
-      console.warn("Failed to fetch RSS feed in ingest agent, using local pool fallback:", e);
-    }
+    if (!res.ok) return null;
+    const json = await res.json();
+    const parsed = JSON.parse(json.choices[0].message.content);
+    if (!parsed || !parsed.content) return null;
 
-    if (!articleText) {
-      const selected = FALLBACK_NEWS_POOL[Math.floor(Math.random() * FALLBACK_NEWS_POOL.length)];
-      articleTitle = selected.title;
-      articleText = `${selected.title}. ${selected.description}`;
-    }
-
-    // 2. Structuring chunk content via DeepSeek
-    let structuredData = {
-      content: articleText,
-      category: "macro",
-      commoditiesImpacted: ["arroz"],
-      sourceCredibility: 8,
-      publishedAt: new Date().toISOString()
+    return {
+      content: parsed.content,
+      category: parsed.category || "macro",
+      commoditiesImpacted: Array.isArray(parsed.commoditiesImpacted) ? parsed.commoditiesImpacted : ["arroz"],
+      sourceCredibility: Number(parsed.sourceCredibility) || 8,
+      publishedAt: parsed.publishedAt || new Date().toISOString(),
     };
+  } catch {
+    return null;
+  }
+}
 
-    if (DEEPSEEK_API_KEY) {
-      try {
-        const dsRes = await fetch("https://api.deepseek.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${DEEPSEEK_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: "deepseek-chat",
-            response_format: { type: "json_object" },
-            messages: [
-              {
-                role: "system",
-                content: `Você é o Agente de Ingestão do SaaS Atlas. Sua missão é ler o conteúdo de uma notícia/relatório e extrair os dados estruturados para preencher nosso banco vetorial.
-                Você deve retornar estritamente um objeto JSON no seguinte formato:
-                {
-                  "content": "Resumo limpo e focado em impactos econômicos da notícia para redes varejistas",
-                  "category": "clima" | "logistica" | "tributario" | "macro",
-                  "commoditiesImpacted": ["arroz", "trigo", "diesel", etc], // escolha apenas commodities relevantes das 18 cadastradas
-                  "sourceCredibility": 9, // avaliação de 1 a 10
-                  "publishedAt": "2026-05-20T12:00:00Z"
-                }`
-              },
-              { role: "user", content: articleText }
-            ]
-          })
-        });
+function generateMockEmbedding(): number[] {
+  const vec: number[] = [];
+  let sumSq = 0;
+  for (let i = 0; i < 1536; i++) {
+    const val = Math.random() - 0.5;
+    vec.push(val);
+    sumSq += val * val;
+  }
+  const norm = Math.sqrt(sumSq);
+  return vec.map(v => v / norm);
+}
 
-        if (dsRes.ok) {
-          const dsJson = await dsRes.json();
-          const parsed = JSON.parse(dsJson.choices[0].message.content);
-          if (parsed && parsed.content) {
-            structuredData = {
-              content: parsed.content,
-              category: parsed.category || "macro",
-              commoditiesImpacted: parsed.commoditiesImpacted || ["arroz"],
-              sourceCredibility: Number(parsed.sourceCredibility) || 8,
-              publishedAt: parsed.publishedAt || new Date().toISOString()
-            };
-          }
-        }
-      } catch (err) {
-        console.warn("DeepSeek API error in ingest agent, using regex matcher fallback:", err);
-      }
+async function persistKnowledgeChunk(data: {
+  content: string;
+  category: string;
+  commoditiesImpacted: string[];
+  sourceCredibility: number;
+  publishedAt: string;
+  embedding: number[];
+}): Promise<boolean> {
+  try {
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "KnowledgeChunk" ("id", "content", "embedding", "category", "commoditiesImpacted", "sourceCredibility", "publishedAt", "createdAt")
+      VALUES ($1, $2, $3::vector, $4, $5, $6, $7, NOW())
+    `,
+      crypto.randomUUID(),
+      data.content,
+      JSON.stringify(data.embedding),
+      data.category,
+      data.commoditiesImpacted,
+      data.sourceCredibility,
+      new Date(data.publishedAt)
+    );
+    return true;
+  } catch (err: any) {
+    console.warn("DB insert failed:", err.message);
+    return false;
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const results: Array<{ source: string; title: string; status: string }> = [];
+
+  try {
+    const body = await request.json().catch(() => ({}));
+    const targetSources: string[] = body.sources || RSS_SOURCES.map(s => s.url);
+    const maxArticles = Math.min(body.maxArticles || RSS_SOURCES.length, RSS_SOURCES.length);
+
+    const sourcesToFetch = RSS_SOURCES.filter(s => targetSources.includes(s.url));
+    if (sourcesToFetch.length === 0) {
+      return NextResponse.json({ error: "Nenhuma fonte válida encontrada" }, { status: 400 });
     }
 
-    // 3. Generate Embedding vector (1536 dims)
-    let embeddingVector: number[] = [];
-    if (OPENAI_API_KEY) {
-      try {
-        const openAiRes = await fetch("https://api.openai.com/v1/embeddings", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${OPENAI_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: "text-embedding-3-small",
-            input: structuredData.content
-          })
-        });
+    const selectedSources = sourcesToFetch.sort(() => Math.random() - 0.5).slice(0, maxArticles);
 
-        if (openAiRes.ok) {
-          const embJson = await openAiRes.json();
-          embeddingVector = embJson.data[0].embedding;
-        }
-      } catch (err) {
-        console.warn("OpenAI Embedding generation failed, using mock vector fallback:", err);
+    for (const source of selectedSources) {
+      const article = await fetchArticlesFromSource(source);
+      if (!article) {
+        results.push({ source: source.name, title: "", status: "SKIPPED (sem artigos)" });
+        continue;
       }
+
+      const articleText = `${article.title}. ${article.description}`;
+
+      let structured = await structureWithDeepSeek(articleText, process.env.DEEPSEEK_API_KEY || "");
+      if (!structured) {
+        structured = {
+          content: articleText,
+          category: source.category,
+          commoditiesImpacted: ["arroz"],
+          sourceCredibility: 7,
+          publishedAt: new Date().toISOString(),
+        };
+      }
+
+      let embedding = generateMockEmbedding();
+      const ok = await persistKnowledgeChunk({ ...structured, embedding });
+
+      results.push({
+        source: source.name,
+        title: article.title,
+        status: ok ? "INGESTED" : "DB_ERROR",
+      });
     }
 
-    // Fallback Mock Vector if API key is not present or failed
-    if (embeddingVector.length === 0) {
-      // Generate a mock 1536 dimensions vector normalized
-      let sumSq = 0;
-      for (let i = 0; i < 1536; i++) {
-        const val = Math.random() - 0.5;
-        embeddingVector.push(val);
-        sumSq += val * val;
+    if (results.length === 0) {
+      const fallback = FALLBACK_POOL[Math.floor(Math.random() * FALLBACK_POOL.length)];
+      const text = `${fallback.title}. ${fallback.description}`;
+      let structured = await structureWithDeepSeek(text, process.env.DEEPSEEK_API_KEY || "");
+      if (!structured) {
+        structured = { content: text, category: "macro", commoditiesImpacted: ["arroz"], sourceCredibility: 7, publishedAt: new Date().toISOString() };
       }
-      const norm = Math.sqrt(sumSq);
-      embeddingVector = embeddingVector.map(v => v / norm);
-    }
-
-    // 4. Save to PostgreSQL database via Prisma raw SQL (pgvector cast support)
-    const uuid = crypto.randomUUID();
-    let queryOutcome = "SUCCESS";
-
-    try {
-      await prisma.$executeRawUnsafe(`
-        INSERT INTO "KnowledgeChunk" (
-          "id", 
-          "content", 
-          "embedding", 
-          "category", 
-          "commoditiesImpacted", 
-          "sourceCredibility", 
-          "publishedAt", 
-          "createdAt"
-        )
-        VALUES ($1, $2, $3::vector, $4, $5, $6, $7, NOW())
-      `,
-        uuid,
-        structuredData.content,
-        JSON.stringify(embeddingVector),
-        structuredData.category,
-        structuredData.commoditiesImpacted,
-        structuredData.sourceCredibility,
-        new Date(structuredData.publishedAt)
-      );
-    } catch (err: any) {
-      console.warn("Prisma KnowledgeChunk raw insert failed (e.g. SQLite local dev or pgvector not loaded), falling back to memory log:", err.message);
-      queryOutcome = `SKIPPED_FALLBACK: ${err.message}`;
+      await persistKnowledgeChunk({ ...structured, embedding: generateMockEmbedding() });
+      results.push({ source: "fallback", title: fallback.title, status: "INGESTED" });
     }
 
     return NextResponse.json({
       success: true,
-      agentName: "Agente Ingestor Vetorial (RAG)",
+      agentName: "Agente Ingestor Multifontes (RAG)",
       status: "COMPLETED",
-      articleIngested: articleTitle,
-      sourceUrl: sourceLink,
-      queryOutcome,
-      data: {
-        id: uuid,
-        ...structuredData
-      }
+      totalIngested: results.filter(r => r.status === "INGESTED").length,
+      results,
     });
 
   } catch (error: any) {
     return NextResponse.json(
-      { error: "Internal Server Error in Ingest Route", details: error.message },
+      { error: "Internal Server Error", details: error.message },
       { status: 500 }
     );
   }

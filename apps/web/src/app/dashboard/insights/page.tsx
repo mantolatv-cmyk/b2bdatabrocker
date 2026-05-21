@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import InsightCard from "@/components/insights/InsightCard";
+import { ALL_INSUMOS, INSUMOS_COUNT } from "@/lib/insumos";
 
 interface InsightItem {
   id: string;
@@ -34,24 +35,10 @@ interface InsightItem {
 
 const MATERIALS = [
   { value: "ALL", label: "🌍 Todos os Produtos" },
-  { value: "arroz", label: "🌾 Arroz Tipo 1" },
-  { value: "feijao", label: "🫘 Feijão Carioca" },
-  { value: "oleo", label: "🌻 Óleo de Soja" },
-  { value: "leite", label: "🥛 Leite UHT" },
-  { value: "cafe", label: "☕ Café Almofada" },
-  { value: "carne", label: "🥩 Alcatra Bovina" },
-  { value: "azeite", label: "🫒 Azeite de Oliva" },
-  { value: "trigo", label: "🍞 Pão de Forma" },
-  { value: "acucar", label: "🍬 Açúcar Refinado" },
-  { value: "queijo", label: "🧀 Queijo Muçarela" },
-  { value: "cerveja", label: "🍺 Cerveja Lata" },
-  { value: "diesel", label: "🚚 Óleo Diesel" },
-  { value: "frango", label: "🍗 Frango Inteiro" },
-  { value: "sabao", label: "🫧 Sabão em Pó" },
-  { value: "margarina", label: "🧈 Margarina" },
-  { value: "macarrao", label: "🍝 Macarrão Espaguete" },
-  { value: "cremedental", label: "🪥 Creme Dental" },
-  { value: "papelhigienico", label: "🧻 Papel Higiênico" }
+  ...ALL_INSUMOS.map(i => ({
+    value: i.id,
+    label: `${i.emoji} ${i.name}`,
+  })),
 ];
 
 export default function InsightsPage() {
@@ -109,6 +96,23 @@ export default function InsightsPage() {
       });
     } catch (e) {
       console.warn("Failed to persist isRead on database, falls back to memory:", e);
+    }
+  };
+
+  const deleteInsight = async (id: string) => {
+    try {
+      setInsights((prev) => prev.filter((i) => i.id !== id));
+      if (selectedInsight?.id === id) setSelectedInsight(null);
+      const res = await fetch("/api/scan", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to delete insight");
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -273,6 +277,7 @@ export default function InsightsPage() {
                 setSelectedInsight(insight);
                 if (!insight.isRead) markAsRead(insight.id, true);
               }}
+              onDelete={deleteInsight}
             />
           ))}
         </div>

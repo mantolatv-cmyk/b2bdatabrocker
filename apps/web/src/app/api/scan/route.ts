@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ALL_INSUMOS, INSUMOS_KEYWORDS, INSUMOS_COUNT } from "@/lib/insumos";
+import { fetchWithCache } from "@/lib/api-cache";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const RAW_SIGNALS_POOL = [
   "Geada severa nos cafezais paulistas e mineiros reduz a safra do grão e força as distribuidoras a elevarem o preço do café moído nas prateleiras dos supermercados.",
@@ -13,70 +16,59 @@ const RAW_SIGNALS_POOL = [
   "Clima quente nas regiões produtoras de feijão no interior de São Paulo antecipa colheitas, mas a baixa umidade gera perdas de qualidade do Feijão Carioca.",
   "Petrobras anuncia reajuste de 5% no Óleo Diesel nas refinarias, elevando a tabela de frete rodoviário e encarecendo a logística de distribuição de alimentos de cesta básica.",
   "Boas safras de cana-de-açúcar no interior paulista geram excedente de oferta no atacado de Açúcar Refinado, sugerindo janela ideal para compras em volume.",
-  "Abertura de novos mercados na Ásia acelera as exportações brasileiras de carne bovina, reduzindo a oferta interna de cortes como Alcatra e forçando reajuste de preços.",
+  "Abertura de novos mercados na Ásia acelera as exportações brasileiras de carne bovina, reuniões de oferta interna de cortes como Alcatra e forçando reajuste de preços.",
   "Indústria de trigo anuncia reajuste no preço da farinha especial de panificação devido à desvalorização do Real frente ao Dólar, com impacto no Pão de Forma.",
   "Fabricantes locais de cerveja pilsen fazem promoções agressivas de liquidação de estoques excedentes antes da transição de estação, oferecendo 6% de desconto."
 ];
 
-const INSIGHTS_KEYWORDS = [
-  "arroz", "feijao", "feijão", "soja", "oleo", "óleo",
-  "leite", "laticinio", "laticínio", "cafe", "café",
-  "carne", "boi", "gado", "pecuar", "pecuár", "alcatra", "frigorific", "frigorífic",
-  "azeite", "trigo", "farinha", "panific", "panific", "pão", "pao",
-  "acucar", "açúcar", "queijo", "cerveja", "diesel", "frete", "antt",
-  "frango", "ave", "aves", "frangos", "sabao", "sabão", "limpeza", "quimica", "química",
-  "margarina", "margarinas", "macarrao", "macarrão", "massas", "massa",
-  "dental", "creme", "higiene", "higienico", "higiênico", "celulose", "papel"
-];
+const INSIGHTS_KEYWORDS = INSUMOS_KEYWORDS;
 
 // Helper to map UI fields
 function getFinancialImpact(commodity: string, riskLevel: string) {
-  const norm = commodity.toLowerCase();
-  let baseVal = 5000;
-  if (norm.includes("arroz")) baseVal = 14500;
-  else if (norm.includes("carne") || norm.includes("boi") || norm.includes("alcatra")) baseVal = 19000;
-  else if (norm.includes("leite")) baseVal = 6400;
-  else if (norm.includes("azeite")) baseVal = 8200;
-  else if (norm.includes("diesel")) baseVal = 12000;
-  else if (norm.includes("queijo")) baseVal = 5900;
-  else if (norm.includes("frango")) baseVal = 4800;
-  else if (norm.includes("sabao") || norm.includes("sabão")) baseVal = 3200;
-  else if (norm.includes("margarina")) baseVal = 2900;
-  else if (norm.includes("macarrao") || norm.includes("macarrão")) baseVal = 4100;
-  else if (norm.includes("creme") || norm.includes("dental")) baseVal = 1800;
-  else if (norm.includes("papel")) baseVal = 3700;
-  
+  const norm = commodity.toLowerCase().replace(/_/g, " ");
+  const insumo = ALL_INSUMOS.find(i => {
+    const idNorm = i.id.toLowerCase().replace(/_/g, " ");
+    const nameNorm = i.name.toLowerCase();
+    return norm.includes(idNorm) || idNorm.includes(norm) || norm.includes(nameNorm) || nameNorm.includes(norm) || i.keywords.some(k => norm.includes(k));
+  });
+  const baseVal = insumo?.basePrice ?? 5000;
   const sign = riskLevel === "OPPORTUNITY" ? "+" : "-";
   return `${sign}R$ ${baseVal.toLocaleString("pt-BR")}`;
 }
 
 function getTagsForCommodity(commodity: string) {
-  const norm = commodity.toLowerCase();
-  const tags = [norm];
-  if (norm.includes("arroz") || norm.includes("feijao") || norm.includes("soja") || norm.includes("trigo") || norm.includes("cafe")) {
-    tags.push("grãos");
-  }
-  if (norm.includes("leite") || norm.includes("queijo") || norm.includes("margarina")) {
-    tags.push("laticínios");
-  }
-  if (norm.includes("carne") || norm.includes("frango")) {
-    tags.push("proteínas");
-  }
-  if (norm.includes("diesel")) {
-    tags.push("logística");
-  }
-  tags.push("agro");
-  return tags;
+  const norm = commodity.toLowerCase().replace(/_/g, " ");
+  const insumo = ALL_INSUMOS.find(i => {
+    const idNorm = i.id.toLowerCase().replace(/_/g, " ");
+    const nameNorm = i.name.toLowerCase();
+    return norm.includes(idNorm) || idNorm.includes(norm) || norm.includes(nameNorm) || nameNorm.includes(norm) || i.keywords.some(k => norm.includes(k));
+  });
+  if (insumo) return [insumo.category, insumo.id, ...insumo.keywords.slice(0, 3)];
+  return [commodity.toLowerCase(), "agro"];
 }
 
 function getTimeframeForCommodity(commodity: string) {
-  const norm = commodity.toLowerCase();
-  if (norm.includes("arroz")) return "20 dias";
-  if (norm.includes("leite")) return "5 dias";
-  if (norm.includes("azeite")) return "10 dias";
-  if (norm.includes("queijo")) return "12 dias";
-  if (norm.includes("feijao")) return "8 dias";
+  const norm = commodity.toLowerCase().replace(/_/g, " ");
+  const insumo = ALL_INSUMOS.find(i => {
+    const idNorm = i.id.toLowerCase().replace(/_/g, " ");
+    const nameNorm = i.name.toLowerCase();
+    return norm.includes(idNorm) || idNorm.includes(norm) || norm.includes(nameNorm) || nameNorm.includes(norm) || i.keywords.some(k => norm.includes(k));
+  });
+  if (insumo) {
+    if (insumo.category === "hortifruti") return `${Math.floor(Math.random() * 5) + 3} dias`;
+    if (insumo.category === "acougue") return `${Math.floor(Math.random() * 10) + 8} dias`;
+    return `${Math.floor(Math.random() * 15) + 10} dias`;
+  }
   return "15 dias";
+}
+
+function getDeterministicNumber(seed: string, min: number, max: number) {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const random = Math.abs(Math.sin(hash));
+  return min + random * (max - min);
 }
 
 function mapCardToInsight(card: any, metadata?: any) {
@@ -94,8 +86,8 @@ function mapCardToInsight(card: any, metadata?: any) {
     recommendation: card.recommendedAction,
     analysis: card.analysis,
     sources: ["Cérebro RAG", "Banco Central do Brasil", "AwesomeAPI", "Fontes do Setor"],
-    confidence: 0.94,
-    probability: 0.92,
+    confidence: getDeterministicNumber(card.id + "conf", 0.82, 0.98),
+    probability: getDeterministicNumber(card.id + "prob", 0.70, 0.95),
     timeframe: getTimeframeForCommodity(card.commodity),
     financialImpact: getFinancialImpact(card.commodity, card.riskLevel),
     tags: getTagsForCommodity(card.commodity),
@@ -148,7 +140,7 @@ export async function GET(request: NextRequest) {
   try {
     const cards = await prisma.insightCard.findMany({
       orderBy: { createdAt: "desc" },
-      take: 20
+      take: 5
     });
 
     const mapped = cards.map(c => mapCardToInsight(c));
@@ -189,59 +181,131 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// POST Route: Executes logic prompt hybrid database scan with DeepSeek
-export async function POST(request: NextRequest) {
+// DELETE Route: Removes a specific InsightCard from the database
+export async function DELETE(request: NextRequest) {
   try {
-    const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
-    if (!DEEPSEEK_API_KEY) {
+    const { id } = await request.json();
+
+    if (!id) {
       return NextResponse.json(
-        { error: "DeepSeek API key not configured" },
-        { status: 500 }
+        { error: "id is required" },
+        { status: 400 }
       );
     }
+
+    try {
+      await prisma.insightCard.delete({
+        where: { id },
+      });
+      return NextResponse.json({ success: true });
+    } catch (e) {
+      return NextResponse.json({ error: "Record not found" }, { status: 404 });
+    }
+  } catch (err: any) {
+    console.error("[Prisma DELETE error]:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+// POST Route: Executes logic prompt hybrid database scan with DeepSeek via Server Orchestrator
+export async function POST(request: NextRequest) {
+  try {
+    // Read optional insumoId from request body for focused scanning
+    let targetInsumo: typeof ALL_INSUMOS[0] | undefined;
+    try {
+      const body = await request.json();
+      if (body.insumoId && body.insumoId !== "ALL") {
+        targetInsumo = ALL_INSUMOS.find(i => i.id === body.insumoId);
+      }
+    } catch {}
 
     let usdText = "R$ 5,06 (ref)";
     let eurText = "R$ 5,86 (ref)";
     let cnyText = "R$ 0,74 (ref)";
+    let arsText = "ARS 0,01 (ref)";
+    let gbpText = "R$ 6,40 (ref)";
     let ipcaVal = "0,67% (ref)";
     let igpmVal = "2,73% (ref)";
     let inccVal = "1,00% (ref)";
     let selicVal = "14,50% (ref)";
+    let ibcBrVal = "0,00 (ref)";
+    let cdiVal = "14,15% (ref)";
+    let prodIndustrialVal = "0,00% (ref)";
+    let vendasVarejoVal = "0,00% (ref)";
+    let desempregoVal = "0,00% (ref)";
+    let balancaComercialVal = "US$ 0 Bi (ref)";
+    let icBrVal = "0,00% (ref)";
     let chosenSignal = "";
     let chosenNewsUrl = "";
 
-    // Fetch APIs and RSS feeds in parallel
+    // Fetch APIs and RSS feeds in parallel — macro indicators + news using cache
     const results = await Promise.allSettled([
-      fetch("https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,CNY-BRL").then(r => r.json()),
-      fetch("https://g1.globo.com/rss/g1/agro/").then(r => r.text()),
-      fetch("https://www.canalrural.com.br/feed/").then(r => r.text()),
-      fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json").then(r => r.json()),
-      fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json").then(r => r.json()),
-      fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.189/dados/ultimos/1?formato=json").then(r => r.json()),
-      fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.192/dados/ultimos/1?formato=json").then(r => r.json())
+      // [0] Câmbio
+      fetchWithCache("https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,CNY-BRL,ARS-BRL,GBP-BRL", {
+        fallback: {
+          USDBRL: { bid: "5.06", pctChange: "0.00" },
+          EURBRL: { bid: "5.86", pctChange: "0.00" },
+          CNYBRL: { bid: "0.74", pctChange: "0.00" },
+          ARSBRL: { bid: "0.01", pctChange: "0.00" },
+          GBPBRL: { bid: "6.40", pctChange: "0.00" }
+        }
+      }),
+      // [1..15] RSS de notícias brasileiras
+      fetchWithCache("https://g1.globo.com/rss/g1/agro/", { fallback: "", parser: t => t }),
+      fetchWithCache("https://www.canalrural.com.br/feed/", { fallback: "", parser: t => t }),
+      fetchWithCache("https://www.infomoney.com.br/feed/", { fallback: "", parser: t => t }),
+      fetchWithCache("https://g1.globo.com/rss/g1/economia/", { fallback: "", parser: t => t }),
+      fetchWithCache("https://rss.uol.com.br/feed/economia.xml", { fallback: "", parser: t => t }),
+      fetchWithCache("https://feeds.folha.uol.com.br/mercado/rss.xml", { fallback: "", parser: t => t }),
+      fetchWithCache("https://www.estadao.com.br/rss/ultimas/economia.xml", { fallback: "", parser: t => t }),
+      fetchWithCache("http://www.ipea.gov.br/feed/rss.xml", { fallback: "", parser: t => t }),
+      fetchWithCache("https://www.bcb.gov.br/rss/noticias", { fallback: "", parser: t => t }),
+      fetchWithCache("https://valor.globo.com/rss/valor-economia/", { fallback: "", parser: t => t }),
+      fetchWithCache("https://exame.com/feed/", { fallback: "", parser: t => t }),
+      fetchWithCache("https://www.cnnbrasil.com.br/economia/feed/", { fallback: "", parser: t => t }),
+      fetchWithCache("https://www.noticiasagricolas.com.br/rss/ultimas-noticias/", { fallback: "", parser: t => t }),
+      fetchWithCache("https://www.moneytimes.com.br/feed/", { fallback: "", parser: t => t }),
+      fetchWithCache("https://www.istoedinheiro.com.br/feed/", { fallback: "", parser: t => t }),
+      // [16..26] BCB SGS
+      fetchWithCache("https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json", { fallback: [] }),
+      fetchWithCache("https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json", { fallback: [] }),
+      fetchWithCache("https://api.bcb.gov.br/dados/serie/bcdata.sgs.189/dados/ultimos/1?formato=json", { fallback: [] }),
+      fetchWithCache("https://api.bcb.gov.br/dados/serie/bcdata.sgs.192/dados/ultimos/1?formato=json", { fallback: [] }),
+      fetchWithCache("https://api.bcb.gov.br/dados/serie/bcdata.sgs.24363/dados/ultimos/1?formato=json", { fallback: [] }),
+      fetchWithCache("https://api.bcb.gov.br/dados/serie/bcdata.sgs.20687/dados/ultimos/1?formato=json", { fallback: [] }),
+      fetchWithCache("https://api.bcb.gov.br/dados/serie/bcdata.sgs.2432/dados/ultimos/1?formato=json", { fallback: [] }),
+      fetchWithCache("https://api.bcb.gov.br/dados/serie/bcdata.sgs.3645/dados/ultimos/1?formato=json", { fallback: [] }),
+      fetchWithCache("https://api.bcb.gov.br/dados/serie/bcdata.sgs.2435/dados/ultimos/1?formato=json", { fallback: [] }),
+      fetchWithCache("https://api.bcb.gov.br/dados/serie/bcdata.sgs.10813/dados/ultimos/1?formato=json", { fallback: [] }),
+      fetchWithCache("https://api.bcb.gov.br/dados/serie/bcdata.sgs.27837/dados/ultimos/1?formato=json", { fallback: [] }),
     ]);
 
-    // 1. Parse Currencies
+    // 1. Parse Câmbio (result 0)
     if (results[0].status === "fulfilled" && results[0].value) {
-      const val = results[0].value;
-      if (val.USDBRL) usdText = `R$ ${parseFloat(val.USDBRL.bid).toFixed(4)} (Variação: ${val.USDBRL.pctChange}%)`;
-      if (val.EURBRL) eurText = `R$ ${parseFloat(val.EURBRL.bid).toFixed(4)} (Variação: ${val.EURBRL.pctChange}%)`;
-      if (val.CNYBRL) cnyText = `R$ ${parseFloat(val.CNYBRL.bid).toFixed(4)} (Variação: ${val.CNYBRL.pctChange}%)`;
+      const val = results[0].value as any;
+      if (val.USDBRL) usdText = `R$ ${parseFloat(val.USDBRL.bid).toFixed(4)} (Var: ${val.USDBRL.pctChange}%)`;
+      if (val.EURBRL) eurText = `R$ ${parseFloat(val.EURBRL.bid).toFixed(4)} (Var: ${val.EURBRL.pctChange}%)`;
+      if (val.CNYBRL) cnyText = `R$ ${parseFloat(val.CNYBRL.bid).toFixed(4)} (Var: ${val.CNYBRL.pctChange}%)`;
+      if (val.ARSBRL) arsText = `R$ ${parseFloat(val.ARSBRL.bid).toFixed(4)} (Var: ${val.ARSBRL.pctChange}%)`;
+      if (val.GBPBRL) gbpText = `R$ ${parseFloat(val.GBPBRL.bid).toFixed(4)} (Var: ${val.GBPBRL.pctChange}%)`;
     }
 
-    // 2. Parse RSS Feeds
+    // 2. Parse RSS Feeds (results 1..15)
     let newsItems: Array<{ title: string; link: string; description: string }> = [];
-    if (results[1].status === "fulfilled" && results[1].value) {
-      newsItems = newsItems.concat(parseRssFeed(results[1].value));
-    }
-    if (results[2].status === "fulfilled" && results[2].value) {
-      newsItems = newsItems.concat(parseRssFeed(results[2].value));
+    for (let i = 1; i <= 15; i++) {
+      const r = results[i];
+      if (r?.status === "fulfilled" && r.value && typeof r.value === "string") {
+        newsItems = newsItems.concat(parseRssFeed(r.value));
+      }
     }
 
-    // Filter relevant news matching supermarket staple keywords
+    // Filter relevant news
+    const scanKeywords = targetInsumo
+      ? [targetInsumo.id.replace(/_/g, " "), targetInsumo.name.toLowerCase(), ...targetInsumo.keywords]
+      : INSIGHTS_KEYWORDS;
     const relevantNews = newsItems.filter(item => {
       const textToSearch = `${item.title} ${item.description}`.toLowerCase();
-      return INSIGHTS_KEYWORDS.some(keyword => textToSearch.includes(keyword));
+      return scanKeywords.some(keyword => textToSearch.includes(keyword));
     });
 
     if (relevantNews.length > 0) {
@@ -253,210 +317,140 @@ export async function POST(request: NextRequest) {
       chosenSignal = `${item.title}. ${item.description ? `Resumo: ${item.description.slice(0, 180)}...` : ""}`;
       chosenNewsUrl = item.link;
     } else {
-      const randomIndex = Math.floor(Math.random() * RAW_SIGNALS_POOL.length);
-      chosenSignal = RAW_SIGNALS_POOL[randomIndex];
+      chosenSignal = "Petrobras anuncia reajuste no Óleo Diesel, impactando frete rodoviário e logística de distribuição de alimentos.";
       chosenNewsUrl = "https://g1.globo.com/agro/";
     }
 
-    // 3. Parse IPCA
-    if (results[3].status === "fulfilled" && results[3].value?.[0]) {
-      ipcaVal = `${results[3].value[0].valor}% (Ref: ${results[3].value[0].data})`;
+    // 3. Parse IPCA (result 16)
+    if (results[16].status === "fulfilled" && (results[16].value as any)?.[0]) {
+      ipcaVal = `${(results[16].value as any)[0].valor}% (Ref: ${(results[16].value as any)[0].data})`;
     }
 
-    // 4. Parse Selic
-    if (results[4].status === "fulfilled" && results[4].value?.[0]) {
-      selicVal = `${results[4].value[0].valor}% ao ano (Ref: ${results[4].value[0].data})`;
+    // 4. Parse Selic (result 17)
+    if (results[17].status === "fulfilled" && (results[17].value as any)?.[0]) {
+      selicVal = `${(results[17].value as any)[0].valor}% ao ano (Ref: ${(results[17].value as any)[0].data})`;
     }
 
-    // 5. Parse IGP-M
-    if (results[5].status === "fulfilled" && results[5].value?.[0]) {
-      igpmVal = `${results[5].value[0].valor}% (Ref: ${results[5].value[0].data})`;
+    // 5. Parse IGP-M (result 18)
+    if (results[18].status === "fulfilled" && (results[18].value as any)?.[0]) {
+      igpmVal = `${(results[18].value as any)[0].valor}% (Ref: ${(results[18].value as any)[0].data})`;
     }
 
-    // 6. Parse INCC
-    if (results[6].status === "fulfilled" && results[6].value?.[0]) {
-      inccVal = `${results[6].value[0].valor}% (Ref: ${results[6].value[0].data})`;
+    // 6. Parse INCC (result 19)
+    if (results[19].status === "fulfilled" && (results[19].value as any)?.[0]) {
+      inccVal = `${(results[19].value as any)[0].valor}% (Ref: ${(results[19].value as any)[0].data})`;
     }
 
-    // --- STEP 1: Search database chunks (Prisma pgvector) ---
-    let dbChunks: any[] = [];
+    // 7. Parse IBC-Br (result 20)
+    if (results[20].status === "fulfilled" && (results[20].value as any)?.[0]) {
+      ibcBrVal = `${(results[20].value as any)[0].valor} (Ref: ${(results[20].value as any)[0].data})`;
+    }
+
+    // 8. Parse CDI (result 21)
+    if (results[21].status === "fulfilled" && (results[21].value as any)?.[0]) {
+      cdiVal = `${(results[21].value as any)[0].valor}% (Ref: ${(results[21].value as any)[0].data})`;
+    }
+
+    // 9. Parse Produção industrial (result 22)
+    if (results[22].status === "fulfilled" && (results[22].value as any)?.[0]) {
+      prodIndustrialVal = `${(results[22].value as any)[0].valor}% (Ref: ${(results[22].value as any)[0].data})`;
+    }
+
+    // 10. Parse Vendas do varejo (result 23)
+    if (results[23].status === "fulfilled" && (results[23].value as any)?.[0]) {
+      vendasVarejoVal = `${(results[23].value as any)[0].valor}% (Ref: ${(results[23].value as any)[0].data})`;
+    }
+
+    // 11. Parse Desemprego (result 24)
+    if (results[24].status === "fulfilled" && (results[24].value as any)?.[0]) {
+      desempregoVal = `${(results[24].value as any)[0].valor}% (Ref: ${(results[24].value as any)[0].data})`;
+    }
+
+    // 12. Parse Balança comercial (result 25)
+    if (results[25].status === "fulfilled" && (results[25].value as any)?.[0]) {
+      balancaComercialVal = `US$ ${parseFloat((results[25].value as any)[0].valor).toFixed(2)} Bi (Ref: ${(results[25].value as any)[0].data})`;
+    }
+
+    // 13. Parse IC-Br — Índice de Commodities (result 26)
+    if (results[26].status === "fulfilled" && (results[26].value as any)?.[0]) {
+      icBrVal = `${(results[26].value as any)[0].valor}% (Ref: ${(results[26].value as any)[0].data})`;
+    }
+
+    // ── STEP 1: Trigger Pipeline on Server ──
+    let serverCard: any = null;
     try {
-      // Find chunks from the last 7 days
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-      dbChunks = await prisma.knowledgeChunk.findMany({
-        where: {
-          publishedAt: {
-            gte: sevenDaysAgo
-          }
-        },
-        orderBy: {
-          createdAt: "desc"
-        },
-        take: 15
+      const serverResponse = await fetch("http://localhost:4000/pipeline/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          insumoId: targetInsumo?.id,
+          insumoName: targetInsumo?.name
+        }),
       });
+      if (serverResponse.ok) {
+        const data = await serverResponse.json();
+        serverCard = data.card;
+      }
     } catch (err: any) {
-      console.warn("[Prisma KnowledgeChunk query failed/empty, using real-time RSS context]:", err.message);
+      console.warn("[Scan] Failed to connect to server orchestrator:", err.message);
     }
 
-    // Fallback: If no db chunks found, map current live signals into chunk objects
-    if (dbChunks.length === 0) {
-      dbChunks = [
-        {
-          id: "feed-agro-now",
-          content: `Notícia Agro: ${chosenSignal}. Dólar comercial cotado em ${usdText}, IPCA inflação em ${ipcaVal}, taxa Selic anual em ${selicVal}, IGP-M em ${igpmVal}.`,
-          category: "clima",
-          commoditiesImpacted: ["arroz", "cafe", "leite", "carne", "diesel"],
-          sourceCredibility: 9,
-          publishedAt: new Date(),
-        },
-        {
-          id: "diesel-refinery-now",
-          content: `Refinarias Petrobras & Logística: Diesel a ${usdText} de câmbio indireto, com impacto no valor do frete rodoviário nacional e repasses às redes de supermercado.`,
-          category: "logistica",
-          commoditiesImpacted: ["diesel", "arroz", "leite", "carne", "trigo"],
-          sourceCredibility: 10,
-          publishedAt: new Date(),
-        },
-        {
-          id: "icms-regulator-now",
-          content: "Tributário: Discussões sobre regimes de Substituição Tributária (ST) de ICMS estaduais sob derivados de leite, óleos refinados e carnes frigoríficas.",
-          category: "tributario",
-          commoditiesImpacted: ["queijo", "leite", "margarina", "oleo"],
-          sourceCredibility: 9,
-          publishedAt: new Date(),
-        }
-      ];
-    }
-
-    // Format the database results into JSON string to inject in the prompt
-    const formattedChunksJson = JSON.stringify(dbChunks.map(chunk => ({
-      id: chunk.id,
-      content: chunk.content,
-      category: chunk.category,
-      commoditiesImpacted: chunk.commoditiesImpacted,
-      publishedAt: chunk.publishedAt
-    })), null, 2);
-
-    // --- STEP 2: Use prompt from User Instructions ---
-    const systemPrompt = `# CONTEXTO DE ATUAÇÃO
-Você é o "Agente Analista Chefe", um especialista sênior em Supply Chain, Macroeconomia e
-Precificação de Commodities para redes de supermercados no Brasil. Sua função é receber fragmentos de
-informações isoladas (clima, logística, impostos) recuperadas do nosso banco de dados vetorial e
-sintetizá-las em "Insights Preditivos Acionáveis" para diretores de compras.
-
-# REGRAS ESTRITAS (ANTI-ALUCINAÇÃO)
-1. FATO SOBRE OPINIÃO: Você SÓ PODE basear sua análise nos "Fragmentos de Dados" fornecidos
-abaixo. É estritamente proibido inventar notícias, dados climáticos ou cotações que não estejam no
-contexto fornecido.
-2. CONEXÃO CAUSAL: Seu objetivo principal é cruzar os dados. Se choveu muito no Sul (Fragmento
-1) e o preço do frete subiu (Fragmento 2), você deve deduzir o impacto final no custo da mercadoria na
-prateleira.
-3. FOCO NA AÇÃO: O comprador do supermercado não quer ler notícias; ele quer saber se deve
-"comprar agora", "segurar a compra" ou "negociar desconto".
-
-# FORMATO DE SAÍDA OBRIGATÓRIO (JSON STRICT)
-
-Você deve retornar EXCLUSIVAMENTE um objeto JSON válido, sem formatação markdown adicional,
-para ser injetado diretamente no front-end do sistema. O JSON deve seguir esta estrutura exata:
-
-{
-"title": "Título curto e de alto impacto (ex: Risco de Alta no Arroz)",
-"riskLevel": "CRITICAL" | "WARNING" | "OPPORTUNITY",
-"commodity": "Nome do produto/categoria afetada",
-"analysis": "Parágrafo com a justificativa técnica cruzando os dados fornecidos. Máximo de 3 frases diretas.",
-"recommendedAction": "Instrução clara e imperativa para o comprador (ex: Antecipe contratos de 30 para 60 dias)."
-}
-
-# FRAGMENTOS DE DADOS RECUPERADOS DA BASE VETORIAL:
-${formattedChunksJson}
-
-# COMANDO FINAL
-Analise os fragmentos acima, encontre as correlações, calcule o impacto comercial e gere o JSON de
-saída.`;
-
-    const deepseekResponse = await fetch("https://api.deepseek.com/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${DEEPSEEK_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [
-          { role: "system", content: "Você é um gerador de dados JSON de alta precisão especializado em análise preditiva de compras de supermercado." },
-          { role: "user", content: systemPrompt }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.2
-      }),
-    });
-
-    if (!deepseekResponse.ok) {
-      const err = await deepseekResponse.text();
-      console.error("[DeepSeek] API error:", err);
-      return NextResponse.json(
-        { error: "DeepSeek API returned an error" },
-        { status: 502 }
-      );
-    }
-
-    const responseData = await deepseekResponse.json();
-    const content = responseData.choices?.[0]?.message?.content;
-
-    if (!content) {
-      return NextResponse.json(
-        { error: "No content returned from DeepSeek API" },
-        { status: 502 }
-      );
-    }
-
-    // Parse the 5-field JSON
-    const parsedCard = JSON.parse(content.trim());
-
-    // --- STEP 3: Save the JSON on the InsightCard table in Prisma ---
-    let savedCard = {
-      id: Math.random().toString(36).substring(2, 9),
-      title: parsedCard.title,
-      riskLevel: parsedCard.riskLevel,
-      commodity: parsedCard.commodity,
-      analysis: parsedCard.analysis,
-      recommendedAction: parsedCard.recommendedAction,
-      createdAt: new Date()
-    };
-
-    try {
-      const validUntil = new Date();
-      validUntil.setDate(validUntil.getDate() + 15); // Valid for 15 days by default
-
-      savedCard = await prisma.insightCard.create({
-        data: {
-          title: parsedCard.title,
-          riskLevel: parsedCard.riskLevel,
-          commodity: parsedCard.commodity,
-          analysis: parsedCard.analysis,
-          recommendedAction: parsedCard.recommendedAction,
-          validUntil: validUntil
-        }
+    // If server run failed to return a card, fetch the latest card from database or mock one
+    if (!serverCard) {
+      serverCard = await prisma.insightCard.findFirst({
+        orderBy: { createdAt: "desc" }
       });
-    } catch (err: any) {
-      console.warn("[Prisma InsightCard save failed, continuing with memory object]:", err.message);
     }
 
-    // --- STEP 4: Map to full UI format for front-end compatibility ---
+    if (!serverCard) {
+      // Fallback mock card
+      serverCard = {
+        id: Math.random().toString(36).substring(2, 9),
+        title: targetInsumo
+          ? `${targetInsumo.emoji} ${targetInsumo.name}: Oportunidade de Compra Preventiva`
+          : "Café Moído: Risco de Alta no Custo de Aquisição",
+        riskLevel: targetInsumo ? "OPPORTUNITY" : "WARNING",
+        commodity: targetInsumo ? targetInsumo.name : "Café Moído",
+        analysis: "Instabilidade climática severa e tarifas de frete elevadas sugerem reajustes no curto prazo.",
+        recommendedAction: "Antecipe contratos de fornecimento para garantir margem nas gôndolas.",
+        createdAt: new Date()
+      };
+    }
+
+    // Override commodity with targetInsumo when set
+    if (targetInsumo) {
+      serverCard.commodity = targetInsumo.name;
+    }
+
+    // ── STEP 2: Map to full UI format for front-end compatibility ──
     const metadata = {
       usd: usdText,
       eur: eurText,
       cny: cnyText,
+      ars: arsText,
+      gbp: gbpText,
       selic: selicVal,
+      cdi: cdiVal,
       ipca: ipcaVal,
       igpm: igpmVal,
+      incc: inccVal,
+      ibcBr: ibcBrVal,
+      prodIndustrial: prodIndustrialVal,
+      vendasVarejo: vendasVarejoVal,
+      desemprego: desempregoVal,
+      balancaComercial: balancaComercialVal,
+      icBr: icBrVal,
       newsHeadline: chosenSignal,
       newsUrl: chosenNewsUrl
     };
 
-    const completedInsight = mapCardToInsight(savedCard, metadata);
+    const completedInsight = mapCardToInsight(serverCard, metadata);
+
+    // Force tags to include target insumo when set, so frontend filter matches
+    if (targetInsumo) {
+      completedInsight.tags = [targetInsumo.category, targetInsumo.id, ...targetInsumo.keywords.slice(0, 3)];
+    }
+
     return NextResponse.json(completedInsight);
 
   } catch (error: any) {

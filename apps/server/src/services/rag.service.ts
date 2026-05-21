@@ -98,10 +98,10 @@ export class RAGService {
         vk.summary,
         vk.category,
         1 - (vk.embedding <=> $1::vector) as similarity,
-        rd.source_url,
+        rd."sourceUrl" as source_url,
         rd.title as source_title
       FROM vector_knowledge vk
-      JOIN raw_data rd ON rd.id = vk.raw_data_id
+      JOIN raw_data rd ON rd.id = vk."rawDataId"
       WHERE 1 - (vk.embedding <=> $1::vector) >= $2
       ORDER BY vk.embedding <=> $1::vector
       LIMIT $3

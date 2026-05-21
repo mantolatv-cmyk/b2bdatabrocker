@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ALL_INSUMOS, getInsumoById } from "@/lib/insumos";
 
 export const runtime = "nodejs";
 
@@ -7,26 +8,20 @@ interface PriceHistoryItem {
   price: number;
 }
 
-const PRODUCT_BASE_PRICES: Record<string, { base: number; usdSensitivity: number }> = {
-  arroz: { base: 28.50, usdSensitivity: 0.15 },
-  feijao: { base: 9.20, usdSensitivity: 0.05 },
-  oleo: { base: 6.80, usdSensitivity: 0.25 },
-  leite: { base: 5.10, usdSensitivity: 0.08 },
-  cafe: { base: 19.80, usdSensitivity: 0.20 },
-  carne: { base: 36.90, usdSensitivity: 0.35 },
-  azeite: { base: 44.50, usdSensitivity: 0.60 }, // Super sensível ao dólar (importado)
-  trigo: { base: 6.20, usdSensitivity: 0.30 },
-  acucar: { base: 4.80, usdSensitivity: 0.12 },
-  queijo: { base: 42.00, usdSensitivity: 0.10 },
-  cerveja: { base: 3.90, usdSensitivity: 0.08 },
-  diesel: { base: 5.95, usdSensitivity: 0.40 }, // Diesel reage ao PPI internacional
-  frango: { base: 11.50, usdSensitivity: 0.15 },
-  sabao: { base: 13.90, usdSensitivity: 0.10 },
-  margarina: { base: 6.50, usdSensitivity: 0.12 },
-  macarrao: { base: 4.40, usdSensitivity: 0.22 },
-  cremedental: { base: 3.20, usdSensitivity: 0.05 },
-  papelhigienico: { base: 16.80, usdSensitivity: 0.08 }
-};
+function getProductInfo(materialId: string): { base: number; usdSensitivity: number } {
+  const insumo = getInsumoById(materialId);
+  if (!insumo) {
+    return { base: 10.00, usdSensitivity: 0.10 };
+  }
+  const basePrice = insumo.basePrice / 100;
+  const categorySensitivity: Record<string, number> = {
+    mercearia: 0.18, laticinios: 0.12, acougue: 0.28,
+    bebidas: 0.10, limpeza: 0.10, higiene: 0.06,
+    hortifruti: 0.35, congelados: 0.15, utilidades: 0.08,
+  };
+  const usdSensitivity = categorySensitivity[insumo.category] ?? 0.15;
+  return { base: basePrice, usdSensitivity };
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,7 +42,7 @@ export async function GET(request: NextRequest) {
       console.warn("Could not fetch real currency rates for prices API, using fallback:", e);
     }
 
-    const prodInfo = PRODUCT_BASE_PRICES[material.toLowerCase()] || PRODUCT_BASE_PRICES.arroz;
+    const prodInfo = getProductInfo(material.toLowerCase());
     const basePrice = prodInfo.base;
     const sensitivity = prodInfo.usdSensitivity;
 

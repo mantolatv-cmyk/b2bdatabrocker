@@ -93,7 +93,10 @@ export class AgentOrchestrator {
    * Execute the full pipeline sequentially.
    * Each stage runs after its dependencies complete.
    */
-  async runPipeline(trigger: 'cron' | 'manual' = 'cron'): Promise<Map<AgentName, AgentResult>> {
+  async runPipeline(
+    trigger: 'cron' | 'manual' = 'cron',
+    params?: Record<string, unknown>
+  ): Promise<Map<AgentName, AgentResult>> {
     if (this.isRunning) {
       log.warn('Pipeline already running, skipping');
       return new Map();
@@ -103,7 +106,7 @@ export class AgentOrchestrator {
     const results = new Map<AgentName, AgentResult>();
     const pipelineStart = Date.now();
 
-    log.info({ trigger, stages: this.pipeline.length }, '🚀 Pipeline started');
+    log.info({ trigger, stages: this.pipeline.length, params }, '🚀 Pipeline started');
 
     try {
       for (const stage of this.pipeline) {
@@ -137,7 +140,7 @@ export class AgentOrchestrator {
         }
 
         // Execute agent
-        const result = await this.executeAgent(stage.agent, trigger);
+        const result = await this.executeAgent(stage.agent, trigger, params);
         results.set(stage.agent.name, result);
       }
     } finally {
@@ -162,7 +165,8 @@ export class AgentOrchestrator {
    */
   async executeAgent(
     agent: IAgent,
-    trigger: 'cron' | 'manual' | 'pipeline' = 'pipeline'
+    trigger: 'cron' | 'manual' | 'pipeline' = 'pipeline',
+    params?: Record<string, unknown>
   ): Promise<AgentResult> {
     const startTime = Date.now();
 
@@ -171,7 +175,7 @@ export class AgentOrchestrator {
       data: {
         agentName: agent.name,
         status: 'RUNNING',
-        metadata: { trigger },
+        metadata: { trigger, params } as any,
       },
     });
 
@@ -187,6 +191,7 @@ export class AgentOrchestrator {
         agentName: agent.name,
         triggeredBy: trigger,
         priority: 'normal',
+        params,
       };
 
       const result = await agent.execute(payload);

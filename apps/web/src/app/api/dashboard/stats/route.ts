@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ALL_INSUMOS, INSUMOS_COUNT } from "@/lib/insumos";
+import { fetchWithCache } from "@/lib/api-cache";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,13 +20,9 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Compute economy projected (OPPORTUNITY cards with positive impact)
-    const FINANCIAL_IMPACT_MAP: Record<string, number> = {
-      arroz: 14500, carne: 19000, alcatra: 19000, leite: 6400,
-      azeite: 8200, diesel: 12000, queijo: 5900, frango: 4800,
-      sabao: 3200, margarina: 2900, macarrao: 4100,
-      cremedental: 1800, papelhigienico: 3700, cafe: 7500,
-      feijao: 3800, oleo: 5200, acucar: 2600, trigo: 4300, cerveja: 2100
-    };
+    const FINANCIAL_IMPACT_MAP: Record<string, number> = Object.fromEntries(
+      ALL_INSUMOS.map(i => [i.id, i.basePrice])
+    );
 
     let economyProjected = 0;
     let riskExposed = 0;
@@ -53,20 +52,26 @@ export async function GET(request: NextRequest) {
     let selicText = "14,50% (ref)";
 
     try {
-      const [usdRes, ipcaRes, selicRes] = await Promise.allSettled([
-        fetch("https://economia.awesomeapi.com.br/last/USD-BRL").then(r => r.json()),
-        fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json").then(r => r.json()),
-        fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json").then(r => r.json()),
+      const [usdVal, ipcaVal, selicVal] = await Promise.all([
+        fetchWithCache<any>("https://economia.awesomeapi.com.br/last/USD-BRL", {
+          fallback: { USDBRL: { bid: "5.06", pctChange: "0.00" } }
+        }),
+        fetchWithCache<any>("https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json", {
+          fallback: []
+        }),
+        fetchWithCache<any>("https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json", {
+          fallback: []
+        })
       ]);
 
-      if (usdRes.status === "fulfilled" && usdRes.value?.USDBRL) {
-        usdText = `R$ ${parseFloat(usdRes.value.USDBRL.bid).toFixed(2)} (${usdRes.value.USDBRL.pctChange}%)`;
+      if (usdVal?.USDBRL) {
+        usdText = `R$ ${parseFloat(usdVal.USDBRL.bid).toFixed(2)} (${usdVal.USDBRL.pctChange}%)`;
       }
-      if (ipcaRes.status === "fulfilled" && ipcaRes.value?.[0]) {
-        ipcaText = `${ipcaRes.value[0].valor}% (${ipcaRes.value[0].data})`;
+      if (ipcaVal?.[0]) {
+        ipcaText = `${ipcaVal[0].valor}% (${ipcaVal[0].data})`;
       }
-      if (selicRes.status === "fulfilled" && selicRes.value?.[0]) {
-        selicText = `${selicRes.value[0].valor}% ao ano (${selicRes.value[0].data})`;
+      if (selicVal?.[0]) {
+        selicText = `${selicVal[0].valor}% ao ano (${selicVal[0].data})`;
       }
     } catch (e) {
       console.warn("[Stats] Could not fetch macroeconomic indicators:", e);
@@ -103,7 +108,7 @@ export async function GET(request: NextRequest) {
         },
         {
           label: "Insumos Rastreados",
-          value: "18 Insumos",
+          value: `${INSUMOS_COUNT} Insumos`,
           change: "Ativos",
           positive: true,
           icon: "📦"

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { fetchWithCache } from "@/lib/api-cache";
 
 export const runtime = "nodejs";
 
@@ -84,25 +85,32 @@ export async function POST(request: NextRequest) {
       console.warn("[Reports POST] Prisma unavailable:", err.message);
     }
 
-    // Fetch real macroeconomic data
+    // Fetch real macroeconomic data using cache
     let usdRate = 5.06;
     let ipcaVal = "0,67%";
     let selicVal = "14,50%";
 
     try {
-      const [usdRes, ipcaRes, selicRes] = await Promise.allSettled([
-        fetch("https://economia.awesomeapi.com.br/last/USD-BRL").then(r => r.json()),
-        fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json").then(r => r.json()),
-        fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json").then(r => r.json()),
+      const [usdVal, ipcaValData, selicValData] = await Promise.all([
+        fetchWithCache<any>("https://economia.awesomeapi.com.br/last/USD-BRL", {
+          fallback: { USDBRL: { bid: "5.06" } }
+        }),
+        fetchWithCache<any>("https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json", {
+          fallback: []
+        }),
+        fetchWithCache<any>("https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json", {
+          fallback: []
+        })
       ]);
-      if (usdRes.status === "fulfilled" && usdRes.value?.USDBRL) {
-        usdRate = parseFloat(usdRes.value.USDBRL.bid);
+
+      if (usdVal?.USDBRL) {
+        usdRate = parseFloat(usdVal.USDBRL.bid);
       }
-      if (ipcaRes.status === "fulfilled" && ipcaRes.value?.[0]) {
-        ipcaVal = `${ipcaRes.value[0].valor}%`;
+      if (ipcaValData?.[0]) {
+        ipcaVal = `${ipcaValData[0].valor}%`;
       }
-      if (selicRes.status === "fulfilled" && selicRes.value?.[0]) {
-        selicVal = `${selicRes.value[0].valor}% ao ano`;
+      if (selicValData?.[0]) {
+        selicVal = `${selicValData[0].valor}% ao ano`;
       }
     } catch (e) { /* use defaults */ }
 

@@ -8,10 +8,11 @@
  * simulated operations logs, and interactive Quick Actions.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import InsightCard from "@/components/insights/InsightCard";
+import { ALL_INSUMOS, INSUMOS_COUNT, getCategoryLabel, CATEGORIES, getInsumoById } from "@/lib/insumos";
 
 // Stats are loaded dynamically from /api/dashboard/stats
 interface StatItem {
@@ -26,7 +27,7 @@ const STATS_FALLBACK: StatItem[] = [
   { label: "Economia Projetada", value: "Calculando...", change: "Aguardando dados", positive: true, icon: "🎯" },
   { label: "Risco de Custo Alto", value: "Calculando...", change: "Aguardando dados", positive: false, icon: "🛡️" },
   { label: "Precisão dos Alertas", value: "94.0%", change: "Base histórica", positive: true, icon: "📈" },
-  { label: "Insumos Rastreados", value: "18 Insumos", change: "Ativos", positive: true, icon: "📦" },
+  { label: "Insumos Rastreados", value: `${INSUMOS_COUNT} Insumos`, change: "Ativos", positive: true, icon: "📦" },
 ];
 
 interface InsightItem {
@@ -62,317 +63,46 @@ interface InsightItem {
 
 const MATERIALS = [
   { value: "ALL", label: "🌍 Todos os Produtos" },
-  { value: "arroz", label: "🌾 Arroz Tipo 1 (5kg)" },
-  { value: "feijao", label: "🫘 Feijão Carioca (1kg)" },
-  { value: "oleo", label: "🌻 Óleo de Soja (900ml)" },
-  { value: "leite", label: "🥛 Leite UHT (Litro)" },
-  { value: "cafe", label: "☕ Café Almofada (500g)" },
-  { value: "carne", label: "🥩 Alcatra Bovina (kg)" },
-  { value: "azeite", label: "🫒 Azeite de Oliva (500ml)" },
-  { value: "trigo", label: "🍞 Pão de Forma (Unid)" },
-  { value: "acucar", label: "🍬 Açúcar Refinado (1kg)" },
-  { value: "queijo", label: "🧀 Queijo Muçarela (kg)" },
-  { value: "cerveja", label: "🍺 Cerveja Lata (350ml)" },
-  { value: "diesel", label: "🚚 Óleo Diesel (Litro)" },
-  { value: "frango", label: "🍗 Frango Inteiro (kg)" },
-  { value: "sabao", label: "🫧 Sabão em Pó (1kg)" },
-  { value: "margarina", label: "🧈 Margarina (500g)" },
-  { value: "macarrao", label: "🍝 Macarrão Espaguete (500g)" },
-  { value: "cremedental", label: "🪥 Creme Dental (90g)" },
-  { value: "papelhigienico", label: "🧻 Papel Higiênico (L12 P11)" },
+  ...ALL_INSUMOS.map(i => ({
+    value: i.id,
+    label: `${i.emoji} ${i.name}`,
+  })),
 ];
 
-const MATERIAL_CHART_DATA: Record<string, Record<string, Array<{ day: string; price: number; status: string }>>> = {
-  "7D": {
-    ALL: [
-      { day: "Sem. 1", price: 100, status: "stable" },
-      { day: "Sem. 2", price: 105, status: "stable" },
-      { day: "Sem. 3", price: 102, status: "buy" },
-      { day: "Sem. 4", price: 115, status: "high" },
-      { day: "Sem. 5", price: 118, status: "high" },
-      { day: "Sem. 6", price: 110, status: "stable" },
-      { day: "Sem. 7", price: 112, status: "stable" },
-    ],
-    arroz: [
-      { day: "Sem. 1", price: 25.20, status: "stable" },
-      { day: "Sem. 2", price: 25.00, status: "stable" },
-      { day: "Sem. 3", price: 24.50, status: "buy" },
-      { day: "Sem. 4", price: 26.80, status: "high" },
-      { day: "Sem. 5", price: 28.20, status: "high" },
-      { day: "Sem. 6", price: 28.00, status: "high" },
-      { day: "Sem. 7", price: 27.80, status: "stable" },
-    ],
-    feijao: [
-      { day: "Sem. 1", price: 7.20, status: "stable" },
-      { day: "Sem. 2", price: 7.10, status: "stable" },
-      { day: "Sem. 3", price: 6.80, status: "buy" },
-      { day: "Sem. 4", price: 7.40, status: "high" },
-      { day: "Sem. 5", price: 7.85, status: "high" },
-      { day: "Sem. 6", price: 7.60, status: "high" },
-      { day: "Sem. 7", price: 7.50, status: "stable" },
-    ],
-    oleo: [
-      { day: "Sem. 1", price: 6.20, status: "stable" },
-      { day: "Sem. 2", price: 6.10, status: "stable" },
-      { day: "Sem. 3", price: 5.90, status: "buy" },
-      { day: "Sem. 4", price: 6.40, status: "high" },
-      { day: "Sem. 5", price: 6.75, status: "high" },
-      { day: "Sem. 6", price: 6.60, status: "high" },
-      { day: "Sem. 7", price: 6.50, status: "stable" },
-    ],
-    leite: [
-      { day: "Sem. 1", price: 4.30, status: "stable" },
-      { day: "Sem. 2", price: 4.40, status: "stable" },
-      { day: "Sem. 3", price: 4.15, status: "buy" },
-      { day: "Sem. 4", price: 4.60, status: "high" },
-      { day: "Sem. 5", price: 4.85, status: "high" },
-      { day: "Sem. 6", price: 4.70, status: "high" },
-      { day: "Sem. 7", price: 4.55, status: "stable" },
-    ],
-    cafe: [
-      { day: "Sem. 1", price: 15.50, status: "stable" },
-      { day: "Sem. 2", price: 15.20, status: "stable" },
-      { day: "Sem. 3", price: 14.80, status: "buy" },
-      { day: "Sem. 4", price: 16.20, status: "high" },
-      { day: "Sem. 5", price: 17.50, status: "high" },
-      { day: "Sem. 6", price: 17.00, status: "high" },
-      { day: "Sem. 7", price: 16.80, status: "stable" },
-    ],
-    carne: [
-      { day: "Sem. 1", price: 34.50, status: "stable" },
-      { day: "Sem. 2", price: 34.20, status: "stable" },
-      { day: "Sem. 3", price: 33.00, status: "buy" },
-      { day: "Sem. 4", price: 36.80, status: "high" },
-      { day: "Sem. 5", price: 38.50, status: "high" },
-      { day: "Sem. 6", price: 37.80, status: "high" },
-      { day: "Sem. 7", price: 37.00, status: "stable" },
-    ],
-    azeite: [
-      { day: "Sem. 1", price: 41.20, status: "stable" },
-      { day: "Sem. 2", price: 40.80, status: "stable" },
-      { day: "Sem. 3", price: 39.50, status: "buy" },
-      { day: "Sem. 4", price: 43.40, status: "high" },
-      { day: "Sem. 5", price: 45.80, status: "high" },
-      { day: "Sem. 6", price: 45.00, status: "high" },
-      { day: "Sem. 7", price: 44.50, status: "stable" },
-    ],
-    trigo: [
-      { day: "Sem. 1", price: 3.10, status: "stable" },
-      { day: "Sem. 2", price: 3.05, status: "stable" },
-      { day: "Sem. 3", price: 2.90, status: "buy" },
-      { day: "Sem. 4", price: 3.25, status: "high" },
-      { day: "Sem. 5", price: 3.48, status: "high" },
-      { day: "Sem. 6", price: 3.35, status: "high" },
-      { day: "Sem. 7", price: 3.30, status: "stable" },
-    ],
-    acucar: [
-      { day: "Sem. 1", price: 3.85, status: "stable" },
-      { day: "Sem. 2", price: 3.80, status: "stable" },
-      { day: "Sem. 3", price: 3.60, status: "buy" },
-      { day: "Sem. 4", price: 4.10, status: "high" },
-      { day: "Sem. 5", price: 4.35, status: "high" },
-      { day: "Sem. 6", price: 4.20, status: "high" },
-      { day: "Sem. 7", price: 4.15, status: "stable" },
-    ],
-    queijo: [
-      { day: "Sem. 1", price: 44.50, status: "stable" },
-      { day: "Sem. 2", price: 44.00, status: "stable" },
-      { day: "Sem. 3", price: 42.50, status: "buy" },
-      { day: "Sem. 4", price: 46.80, status: "high" },
-      { day: "Sem. 5", price: 48.90, status: "high" },
-      { day: "Sem. 6", price: 48.00, status: "high" },
-      { day: "Sem. 7", price: 47.50, status: "stable" },
-    ],
-    cerveja: [
-      { day: "Sem. 1", price: 3.50, status: "stable" },
-      { day: "Sem. 2", price: 3.48, status: "stable" },
-      { day: "Sem. 3", price: 3.35, status: "buy" },
-      { day: "Sem. 4", price: 3.70, status: "high" },
-      { day: "Sem. 5", price: 3.89, status: "high" },
-      { day: "Sem. 6", price: 3.85, status: "high" },
-      { day: "Sem. 7", price: 3.80, status: "stable" },
-    ],
-    diesel: [
-      { day: "Sem. 1", price: 5.85, status: "stable" },
-      { day: "Sem. 2", price: 5.80, status: "stable" },
-      { day: "Sem. 3", price: 5.65, status: "buy" },
-      { day: "Sem. 4", price: 6.15, status: "high" },
-      { day: "Sem. 5", price: 6.30, status: "high" },
-      { day: "Sem. 6", price: 6.22, status: "high" },
-      { day: "Sem. 7", price: 6.12, status: "stable" },
-    ],
-    frango: [
-      { day: "Sem. 1", price: 8.50, status: "stable" },
-      { day: "Sem. 2", price: 8.45, status: "stable" },
-      { day: "Sem. 3", price: 8.20, status: "buy" },
-      { day: "Sem. 4", price: 8.90, status: "high" },
-      { day: "Sem. 5", price: 9.15, status: "high" },
-      { day: "Sem. 6", price: 9.05, status: "high" },
-      { day: "Sem. 7", price: 9.00, status: "stable" },
-    ],
-    sabao: [
-      { day: "Sem. 1", price: 12.20, status: "stable" },
-      { day: "Sem. 2", price: 12.10, status: "stable" },
-      { day: "Sem. 3", price: 11.50, status: "buy" },
-      { day: "Sem. 4", price: 12.80, status: "high" },
-      { day: "Sem. 5", price: 13.10, status: "high" },
-      { day: "Sem. 6", price: 12.95, status: "high" },
-      { day: "Sem. 7", price: 12.85, status: "stable" },
-    ],
-    margarina: [
-      { day: "Sem. 1", price: 5.60, status: "stable" },
-      { day: "Sem. 2", price: 5.50, status: "stable" },
-      { day: "Sem. 3", price: 5.25, status: "buy" },
-      { day: "Sem. 4", price: 5.90, status: "high" },
-      { day: "Sem. 5", price: 6.15, status: "high" },
-      { day: "Sem. 6", price: 6.00, status: "high" },
-      { day: "Sem. 7", price: 5.95, status: "stable" },
-    ],
-    macarrao: [
-      { day: "Sem. 1", price: 3.80, status: "stable" },
-      { day: "Sem. 2", price: 3.75, status: "stable" },
-      { day: "Sem. 3", price: 3.50, status: "buy" },
-      { day: "Sem. 4", price: 4.10, status: "high" },
-      { day: "Sem. 5", price: 4.25, status: "high" },
-      { day: "Sem. 6", price: 4.18, status: "high" },
-      { day: "Sem. 7", price: 4.12, status: "stable" },
-    ],
-    cremedental: [
-      { day: "Sem. 1", price: 4.10, status: "stable" },
-      { day: "Sem. 2", price: 4.05, status: "stable" },
-      { day: "Sem. 3", price: 3.80, status: "buy" },
-      { day: "Sem. 4", price: 4.35, status: "high" },
-      { day: "Sem. 5", price: 4.50, status: "high" },
-      { day: "Sem. 6", price: 4.45, status: "high" },
-      { day: "Sem. 7", price: 4.40, status: "stable" },
-    ],
-    papelhigienico: [
-      { day: "Sem. 1", price: 16.50, status: "stable" },
-      { day: "Sem. 2", price: 16.20, status: "stable" },
-      { day: "Sem. 3", price: 15.40, status: "buy" },
-      { day: "Sem. 4", price: 17.80, status: "high" },
-      { day: "Sem. 5", price: 18.50, status: "high" },
-      { day: "Sem. 6", price: 18.10, status: "high" },
-      { day: "Sem. 7", price: 17.90, status: "stable" },
-    ],
-  },
-  "30D": {
-    ALL: [
-      { day: "Mês 1", price: 102, status: "stable" },
-      { day: "Mês 2", price: 118, status: "high" },
-      { day: "Mês 3", price: 108, status: "buy" },
-      { day: "Mês 4", price: 112, status: "stable" },
-    ],
-    arroz: [
-      { day: "Mês 1", price: 25.00, status: "stable" },
-      { day: "Mês 2", price: 28.50, status: "high" },
-      { day: "Mês 3", price: 24.30, status: "buy" },
-      { day: "Mês 4", price: 27.50, status: "stable" },
-    ],
-    feijao: [
-      { day: "Mês 1", price: 7.15, status: "stable" },
-      { day: "Mês 2", price: 7.90, status: "high" },
-      { day: "Mês 3", price: 6.75, status: "buy" },
-      { day: "Mês 4", price: 7.30, status: "stable" },
-    ],
-    oleo: [
-      { day: "Mês 1", price: 6.15, status: "stable" },
-      { day: "Mês 2", price: 6.80, status: "high" },
-      { day: "Mês 3", price: 5.85, status: "buy" },
-      { day: "Mês 4", price: 6.45, status: "stable" },
-    ],
-    leite: [
-      { day: "Mês 1", price: 4.35, status: "stable" },
-      { day: "Mês 2", price: 4.90, status: "high" },
-      { day: "Mês 3", price: 4.10, status: "buy" },
-      { day: "Mês 4", price: 4.45, status: "stable" },
-    ],
-    cafe: [
-      { day: "Mês 1", price: 15.30, status: "stable" },
-      { day: "Mês 2", price: 17.80, status: "high" },
-      { day: "Mês 3", price: 14.60, status: "buy" },
-      { day: "Mês 4", price: 16.50, status: "stable" },
-    ],
-    carne: [
-      { day: "Mês 1", price: 34.20, status: "stable" },
-      { day: "Mês 2", price: 39.00, status: "high" },
-      { day: "Mês 3", price: 32.80, status: "buy" },
-      { day: "Mês 4", price: 36.50, status: "stable" },
-    ],
-    azeite: [
-      { day: "Mês 1", price: 40.90, status: "stable" },
-      { day: "Mês 2", price: 46.20, status: "high" },
-      { day: "Mês 3", price: 39.00, status: "buy" },
-      { day: "Mês 4", price: 44.20, status: "stable" },
-    ],
-    trigo: [
-      { day: "Mês 1", price: 3.08, status: "stable" },
-      { day: "Mês 2", price: 3.52, status: "high" },
-      { day: "Mês 3", price: 2.85, status: "buy" },
-      { day: "Mês 4", price: 3.28, status: "stable" },
-    ],
-    acucar: [
-      { day: "Mês 1", price: 3.80, status: "stable" },
-      { day: "Mês 2", price: 4.40, status: "high" },
-      { day: "Mês 3", price: 3.55, status: "buy" },
-      { day: "Mês 4", price: 4.10, status: "stable" },
-    ],
-    queijo: [
-      { day: "Mês 1", price: 44.20, status: "stable" },
-      { day: "Mês 2", price: 49.50, status: "high" },
-      { day: "Mês 3", price: 42.10, status: "buy" },
-      { day: "Mês 4", price: 47.00, status: "stable" },
-    ],
-    cerveja: [
-      { day: "Mês 1", price: 3.48, status: "stable" },
-      { day: "Mês 2", price: 3.92, status: "high" },
-      { day: "Mês 3", price: 3.32, status: "buy" },
-      { day: "Mês 4", price: 3.75, status: "stable" },
-    ],
-    diesel: [
-      { day: "Mês 1", price: 5.86, status: "stable" },
-      { day: "Mês 2", price: 6.35, status: "high" },
-      { day: "Mês 3", price: 5.60, status: "buy" },
-      { day: "Mês 4", price: 6.02, status: "stable" },
-    ],
-    frango: [
-      { day: "Mês 1", price: 8.40, status: "stable" },
-      { day: "Mês 2", price: 9.20, status: "high" },
-      { day: "Mês 3", price: 8.10, status: "buy" },
-      { day: "Mês 4", price: 8.95, status: "stable" },
-    ],
-    sabao: [
-      { day: "Mês 1", price: 12.10, status: "stable" },
-      { day: "Mês 2", price: 13.20, status: "high" },
-      { day: "Mês 3", price: 11.40, status: "buy" },
-      { day: "Mês 4", price: 12.75, status: "stable" },
-    ],
-    margarina: [
-      { day: "Mês 1", price: 5.55, status: "stable" },
-      { day: "Mês 2", price: 6.20, status: "high" },
-      { day: "Mês 3", price: 5.20, status: "buy" },
-      { day: "Mês 4", price: 5.90, status: "stable" },
-    ],
-    macarrao: [
-      { day: "Mês 1", price: 3.75, status: "stable" },
-      { day: "Mês 2", price: 4.30, status: "high" },
-      { day: "Mês 3", price: 3.45, status: "buy" },
-      { day: "Mês 4", price: 4.10, status: "stable" },
-    ],
-    cremedental: [
-      { day: "Mês 1", price: 4.05, status: "stable" },
-      { day: "Mês 2", price: 4.55, status: "high" },
-      { day: "Mês 3", price: 3.75, status: "buy" },
-      { day: "Mês 4", price: 4.38, status: "stable" },
-    ],
-    papelhigienico: [
-      { day: "Mês 1", price: 16.20, status: "stable" },
-      { day: "Mês 2", price: 18.80, status: "high" },
-      { day: "Mês 3", price: 15.20, status: "buy" },
-      { day: "Mês 4", price: 17.80, status: "stable" },
-    ],
+function generateChartData(insumos: typeof ALL_INSUMOS) {
+  const dayLabels = ["Sem. 1", "Sem. 2", "Sem. 3", "Sem. 4", "Sem. 5", "Sem. 6", "Sem. 7"];
+  const monthLabels = ["Mês 1", "Mês 2", "Mês 3", "Mês 4"];
+
+  function generateSeries(basePrice: number, points: number, labels: string[], seed: number) {
+    let price = basePrice;
+    return labels.map((label, i) => {
+      const variation = 1 + Math.sin(seed * (i + 1) * 1.7) * 0.06 + Math.cos(seed * (i + 1) * 0.9) * 0.03;
+      price = Math.round(basePrice * variation * 100) / 100;
+      const status = variation > 1.04 ? "high" : variation < 0.97 ? "buy" : "stable";
+      return { day: label, price, status };
+    });
   }
-};
+
+  const allAvg = insumos.reduce((s, i) => s + i.basePrice, 0) / insumos.length;
+
+  const result7D: Record<string, Array<{ day: string; price: number; status: string }>> = {
+    ALL: generateSeries(allAvg / 100, 7, dayLabels, 999),
+  };
+  const result30D: Record<string, Array<{ day: string; price: number; status: string }>> = {
+    ALL: generateSeries(allAvg / 100, 4, monthLabels, 999),
+  };
+
+  for (const insumo of insumos) {
+    const bp = insumo.basePrice / 100;
+    const seed = insumo.id.split("").reduce((s, c) => s + c.charCodeAt(0), 0);
+    result7D[insumo.id] = generateSeries(bp, 7, dayLabels, seed);
+    result30D[insumo.id] = generateSeries(bp, 4, monthLabels, seed);
+  }
+
+  return { "7D": result7D, "30D": result30D };
+}
+
+const MATERIAL_CHART_DATA = generateChartData(ALL_INSUMOS);
 
 const SEVERITIES = [
   { value: "ALL", label: "Severidades" },
@@ -413,6 +143,7 @@ export default function DashboardPage() {
   const [activeSeverity, setActiveSeverity] = useState("ALL");
   const [activeType, setActiveType] = useState("ALL");
   const [selectedMaterial, setSelectedMaterial] = useState<string>("ALL");
+  const [productSearch, setProductSearch] = useState("");
 
   // Chart States
   const [chartPeriod, setChartPeriod] = useState<"7D" | "30D">("7D");
@@ -471,6 +202,24 @@ export default function DashboardPage() {
       .finally(() => setInsightsLoading(false));
   }, []);
 
+  const deleteInsight = async (id: string) => {
+    try {
+      setInsights((prev) => prev.filter((i) => i.id !== id));
+      if (selectedInsight?.id === id) setSelectedInsight(null);
+      const res = await fetch("/api/scan", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to delete insight");
+      }
+    } catch (err) {
+      console.error(err);
+      // Optional: re-fetch if failed, or show toast
+    }
+  };
+
   // Real Price Chart State
   const [liveChartData, setLiveChartData] = useState<Array<{ day: string; price: number; status: string }> | null>(null);
 
@@ -526,17 +275,8 @@ export default function DashboardPage() {
     { id: 3, time: "18:42:30", agent: "Agente Analista", text: "RAG carregado com sucesso: pronto para análises correlacionadas." },
   ]);
 
-  // Decision Calculators States
-  const [calcVolume, setCalcVolume] = useState<number>(500);
-  const [calcPrecoAtual, setCalcPrecoAtual] = useState<number>(25.00);
-  const [calcAumento, setCalcAumento] = useState<number>(12);
-  const [calcEstoqueDias, setCalcEstoqueDias] = useState<number>(30);
-
-  const [repasseCustoAtual, setRepasseCustoAtual] = useState<number>(10.00);
-  const [repasseMargemAlvo, setRepasseMargemAlvo] = useState<number>(30);
-  const [repasseNovoCusto, setRepasseNovoCusto] = useState<number>(11.20);
-
-  const [activeCalcTab, setActiveCalcTab] = useState<"ECONOMIA" | "REPASSE">("ECONOMIA");
+  // Insumo target for IA Center scan
+  const [scanInsumoId, setScanInsumoId] = useState<string>("ALL");
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -612,42 +352,16 @@ export default function DashboardPage() {
 
   const handleTestAlert = () => {
     let msg = "";
-    if (selectedMaterial === "arroz" || selectedMaterial === "ALL") {
-      msg = "🌾 *ATLAS ALERTA:* Seca severa confirmada no Sul + aumento de 4% no diesel. O preço do Arroz Tipo 1 vai subir aproximadamente 12% nos próximos 20 dias. Antecipe compras esta semana para garantir a margem atual!";
-    } else if (selectedMaterial === "feijao") {
-      msg = "🫘 *ATLAS ALERTA:* Alta demanda no atacado e quebra parcial de safra paulista elevarão preço do Feijão Carioca em 8% nas distribuidoras. Recomendamos adiantar pedidos.";
-    } else if (selectedMaterial === "oleo") {
-      msg = "🌻 *ATLAS OPORTUNIDADE:* O Óleo de Soja caiu 5% no atacado após colheita recorde no Centro-Oeste. Excelente momento para fechar contratos de fornecimento.";
-    } else if (selectedMaterial === "leite") {
-      msg = "🥛 *ATLAS OPORTUNIDADE:* Captação leiteira em MG subiu 18%. Indústrias parceiras oferecem Leite UHT com 7% de desconto. Janela ideal para repor o estoque mensal nos próximos 5 dias!";
-    } else if (selectedMaterial === "cafe") {
-      msg = "☕ *ATLAS ALERTA:* Alta do dólar encarece exportações de grãos. O Café Almofada (500g) subirá 6% para os distribuidores domésticos. Trave preços antigos hoje.";
-    } else if (selectedMaterial === "carne") {
-      msg = "🥩 *ATLAS ALERTA:* Abertura de novos mercados internacionais pressiona oferta interna. A Alcatra Bovina (kg) subirá 9% nos frigoríficos. Proteja sua margem.";
-    } else if (selectedMaterial === "azeite") {
-      msg = "🫒 *ATLAS ALERTA:* Tarifas portuárias subiram 15% e seca atinge olivais europeus. O Azeite de Oliva subirá 10% nos canais de distribuição. Feche ordens pendentes esta semana.";
-    } else if (selectedMaterial === "trigo") {
-      msg = "🍞 *ATLAS ALERTA:* Custo da farinha de panificação subiu devido ao dólar. O preço do Pão de Forma deve sofrer reajuste de 5% pelas panificadoras parceiras.";
-    } else if (selectedMaterial === "acucar") {
-      msg = "🍬 *ATLAS OPORTUNIDADE:* Excedente de produção de cana em SP derruba preço do Açúcar Refinado em 4% no atacado. Janela ideal para compras em volume.";
-    } else if (selectedMaterial === "queijo") {
-      msg = "🧀 *ATLAS ALERTA:* Novo regime de Substituição Tributária (ST) de ICMS revoga isenção fiscal. O Queijo Muçarela subirá 8% para entradas a partir do dia 1º.";
-    } else if (selectedMaterial === "cerveja") {
-      msg = "🍺 *ATLAS OPORTUNIDADE:* Promoções de final de inverno nas cervejarias locais oferecem cerveja pilsen lata com 6% de desconto para compras acima de 100 caixas.";
-    } else if (selectedMaterial === "diesel") {
-      msg = "🚚 *ATLAS ALERTA:* Elevação de 5% no preço do Diesel na refinaria aumentará a tabela média de fretes de distribuição em 4%. Ajuste os custos logísticos.";
-    } else if (selectedMaterial === "frango") {
-      msg = "🍗 *ATLAS ALERTA:* Alta nos custos do farelo de soja e milho encarece a criação de aves. O Frango Inteiro (kg) subirá cerca de 7% nos próximos 15 dias. Revise preços de tabela.";
-    } else if (selectedMaterial === "sabao") {
-      msg = "🫧 *ATLAS OPORTUNIDADE:* Distribuidora química lança promoção de Sabão em Pó com 8% de desconto em compras fechadas acima de 80 fardos. Janela válida por 5 dias!";
-    } else if (selectedMaterial === "margarina") {
-      msg = "🧈 *ATLAS ALERTA:* Quebra de safra de girassol e soja encarece a gordura vegetal. A Margarina (500g) sofrerá reajuste de 6% nas distribuidoras a partir da próxima semana.";
-    } else if (selectedMaterial === "macarrao") {
-      msg = "🍝 *ATLAS ALERTA:* Trigo importado e custos com energia elevam o refino de farinha de sêmola. O Macarrão Espaguete de 500g terá reajuste de 5% de entrada em 10 dias.";
-    } else if (selectedMaterial === "cremedental") {
-      msg = "🪥 *ATLAS OPORTUNIDADE:* Novo fabricante nacional oferece lote promocional de Creme Dental de 90g com 10% de desconto para compras conjuntas. Excelente margem!";
-    } else if (selectedMaterial === "papelhigienico") {
-      msg = "🧻 *ATLAS ALERTA:* Greve nas indústrias de celulose pressiona os suprimentos de higiene. O fardo de Papel Higiênico subirá 9% de custo nos próximos 12 dias. Antecipe estoque.";
+    const insumo = selectedMaterial === "ALL" ? ALL_INSUMOS[0] : getInsumoById(selectedMaterial);
+    if (insumo) {
+      const alertType = Math.random() > 0.4 ? "ALERTA" : "OPORTUNIDADE";
+      const pct = Math.floor(Math.random() * 10) + 4;
+      const days = Math.floor(Math.random() * 20) + 5;
+      if (alertType === "ALERTA") {
+        msg = `${insumo.emoji} *ATLAS ALERTA:* ${insumo.name} — Condições de mercado (clima, câmbio, demanda) indicam alta de aproximadamente ${pct}% nos próximos ${days} dias. Antecipe compras para garantir margem.`;
+      } else {
+        msg = `${insumo.emoji} *ATLAS OPORTUNIDADE:* ${insumo.name} — Janela de mercado favorável com potencial de economia de ${pct}% nos próximos ${days} dias. Aproveite para fechar contratos.`;
+      }
     }
     setWhatsappNotificationText(msg);
     setIsSimulatingPhone(true);
@@ -661,101 +375,135 @@ export default function DashboardPage() {
 
     const now = new Date();
     const timeStr = now.toLocaleTimeString("pt-BR");
+    const targetName = scanInsumoId !== "ALL"
+      ? `${getInsumoById(scanInsumoId)?.emoji ?? ""} ${getInsumoById(scanInsumoId)?.name ?? scanInsumoId}`
+      : "todos os insumos";
     const newLogs = [
-      { id: Date.now(), time: timeStr, agent: "Agente Analista", text: "Iniciando varredura preditiva sob demanda..." }
+      { id: Date.now(), time: timeStr, agent: "Agente Analista", text: `Iniciando varredura preditiva sob demanda — alvo: ${targetName}...` }
     ];
     setAgentLogs(newLogs);
 
     // Call DeepSeek API in parallel
     let apiResult: InsightItem | null = null;
-    fetch("/api/scan", { method: "POST" })
+    let fetchFinished = false;
+    let fetchError: Error | null = null;
+
+    fetch("/api/scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ insumoId: scanInsumoId }),
+    })
       .then((res) => {
         if (!res.ok) throw new Error("API responded with error");
         return res.json();
       })
       .then((data) => {
         apiResult = data;
+        fetchFinished = true;
       })
       .catch((err) => {
         console.warn("Failed to fetch DeepSeek API, using fallback:", err);
+        fetchError = err;
+        fetchFinished = true;
       });
 
     let progress = 0;
     const interval = setInterval(() => {
-      progress += 5;
-      setScanProgress(progress);
       const currentTime = new Date().toLocaleTimeString("pt-BR");
 
-      if (progress === 20) {
-        setAgentLogs(prev => [
-          ...prev,
-          { id: Date.now() + 1, time: currentTime, agent: "Agente Climático", text: "Varrendo relatórios CONAB, CEPEA e boletins meteorológicos do INPE..." }
-        ]);
-      } else if (progress === 45) {
-        setAgentStatus({ climatico: "idle", logistico: "running", fiscal: "idle", analista: "idle" });
-        setAgentLogs(prev => [
-          ...prev,
-          { id: Date.now() + 2, time: currentTime, agent: "Agente Climático", text: "Coleta agro concluída: Risco de estiagem severa mapeado para o Sul." },
-          { id: Date.now() + 3, time: currentTime, agent: "Agente Logístico", text: "Verificando tabelas ANTT de frete rodoviário e repasses de diesel..." }
-        ]);
-      } else if (progress === 70) {
-        setAgentStatus({ climatico: "idle", logistico: "idle", fiscal: "running", analista: "idle" });
-        setAgentLogs(prev => [
-          ...prev,
-          { id: Date.now() + 4, time: currentTime, agent: "Agente Logístico", text: "Logística mapeada: Frete médio rodoviário com tendência de alta de 4%." },
-          { id: Date.now() + 5, time: currentTime, agent: "Agente Fiscal", text: "Buscando nos Diários Oficiais estaduais por decretos de ICMS e Substituição Tributária..." }
-        ]);
-      } else if (progress === 90) {
-        setAgentStatus({ climatico: "idle", logistico: "idle", fiscal: "idle", analista: "running" });
-        setAgentLogs(prev => [
-          ...prev,
-          { id: Date.now() + 6, time: currentTime, agent: "Agente Fiscal", text: "Varredura fiscal concluída: Decretos de ST mapeados sob derivados lácteos." },
-          { id: Date.now() + 7, time: currentTime, agent: "Agente Analista", text: "Cruzando variáveis fiscais, logísticas e climáticas na base vetorial RAG..." }
-        ]);
-      } else if (progress >= 100) {
+      if (!fetchFinished) {
+        // Slow down progress accumulation as it approaches 95%
+        if (progress < 95) {
+          progress += 5;
+          setScanProgress(progress);
+        }
+
+        // Trigger log messages based on progress phases
+        if (progress === 20) {
+          setAgentLogs(prev => {
+            if (prev.some(l => l.text.includes("Varrendo relatórios"))) return prev;
+            return [
+              ...prev,
+              { id: Date.now() + 1, time: currentTime, agent: "Agente Climático", text: "Varrendo relatórios CONAB, CEPEA e boletins meteorológicos do INPE..." }
+            ];
+          });
+        } else if (progress === 45) {
+          setAgentStatus({ climatico: "idle", logistico: "running", fiscal: "idle", analista: "idle" });
+          setAgentLogs(prev => {
+            if (prev.some(l => l.text.includes("Coleta agro concluída"))) return prev;
+            return [
+              ...prev,
+              { id: Date.now() + 2, time: currentTime, agent: "Agente Climático", text: "Coleta agro concluída: Risco de estiagem severa mapeado para o Sul." },
+              { id: Date.now() + 3, time: currentTime, agent: "Agente Logístico", text: "Verificando tabelas ANTT de frete rodoviário e repasses de diesel..." }
+            ];
+          });
+        } else if (progress === 70) {
+          setAgentStatus({ climatico: "idle", logistico: "idle", fiscal: "running", analista: "idle" });
+          setAgentLogs(prev => {
+            if (prev.some(l => l.text.includes("Logística mapeada"))) return prev;
+            return [
+              ...prev,
+              { id: Date.now() + 4, time: currentTime, agent: "Agente Logístico", text: "Logística mapeada: Frete médio rodoviário com tendência de alta de 4%." },
+              { id: Date.now() + 5, time: currentTime, agent: "Agente Fiscal", text: "Buscando nos Diários Oficiais estaduais por decretos de ICMS e Substituição Tributária..." }
+            ];
+          });
+        } else if (progress === 90) {
+          setAgentStatus({ climatico: "idle", logistico: "idle", fiscal: "idle", analista: "running" });
+          setAgentLogs(prev => {
+            if (prev.some(l => l.text.includes("Varredura fiscal concluída"))) return prev;
+            return [
+              ...prev,
+              { id: Date.now() + 6, time: currentTime, agent: "Agente Fiscal", text: "Varredura fiscal concluída: Decretos de ST mapeados sob derivados lácteos." },
+              { id: Date.now() + 7, time: currentTime, agent: "Agente Analista", text: "Cruzando variáveis fiscais, logísticas e climáticas na base vetorial RAG..." }
+            ];
+          });
+        }
+      } else {
+        // API has returned! Finish progress bar and update state.
         clearInterval(interval);
-        setAgentStatus({ climatico: "idle", logistico: "idle", fiscal: "idle", analista: "idle" });
+        setAgentStatus({ climatico: "idle", logistico: "idle", fiscal: "idle", analista: "idle" } as any);
         setIsScanning(false);
         setScanProgress(100);
-
-        const newInsight = apiResult || null;
 
         if (!apiResult) {
           setAgentLogs(prev => [
             ...prev,
-            { id: Date.now() + 10, time: currentTime, agent: "Agente Analista", text: "⚠️ API do DeepSeek indisponível no momento. Verifique sua chave DEEPSEEK_API_KEY no .env.local." }
+            { id: Date.now() + 10, time: currentTime, agent: "Agente Analista", text: `⚠️ Falha na Varredura: ${fetchError?.message || "Erro desconhecido."}` }
           ]);
-        } else if (apiResult.metadata) {
+          showToast("Erro na varredura preditiva!");
+        } else {
           const meta = apiResult.metadata;
-          setAgentLogs(prev => {
-            const list = [...prev];
-            if (meta.newsHeadline) {
-              list.push({
-                id: Date.now() + 20,
-                time: currentTime,
-                agent: "Agente Climático",
-                text: `Sinal Real no Feed: "${meta.newsHeadline.slice(0, 80)}..."`
-              });
-            }
-            if (meta.usd || meta.selic) {
-              list.push({
-                id: Date.now() + 21,
-                time: currentTime,
-                agent: "Agente Logístico",
-                text: `Dados Reais Extraídos — Câmbio Dólar: ${meta.usd || "N/A"} | Selic: ${meta.selic || "N/A"}`
-              });
-            }
-            return list;
-          });
-        }
+          if (meta) {
+            setAgentLogs(prev => {
+              const list = [...prev];
+              if (meta.newsHeadline) {
+                list.push({
+                  id: Date.now() + 20,
+                  time: currentTime,
+                  agent: "Agente Climático",
+                  text: `Sinal Real no Feed: "${meta.newsHeadline.slice(0, 80)}..."`
+                });
+              }
+              if (meta.usd || meta.selic) {
+                list.push({
+                  id: Date.now() + 21,
+                  time: currentTime,
+                  agent: "Agente Logístico",
+                  text: `Dados Reais Extraídos — Câmbio Dólar: ${meta.usd || "N/A"} | Selic: ${meta.selic || "N/A"}`
+                });
+              }
+              return list;
+            });
+          }
 
-        if (newInsight) {
-          setInsights(prev => [newInsight as InsightItem, ...prev]);
+          setInsights(prev => [apiResult as InsightItem, ...prev]);
+          setSelectedInsight(apiResult);
+          
           setAgentLogs(prev => [
             ...prev,
-            { id: Date.now() + 8, time: currentTime, agent: "Agente Analista", text: `PREVISÃO ENVIADA AO DASHBOARD: ${(newInsight as InsightItem).title.slice(0, 32)}... (${(newInsight as InsightItem).financialImpact})` }
+            { id: Date.now() + 8, time: currentTime, agent: "Agente Analista", text: `PREVISÃO ENVIADA AO DASHBOARD: ${apiResult!.title.slice(0, 32)}... (${apiResult!.financialImpact})` }
           ]);
-          showToast(apiResult ? "Varredura real concluída via DeepSeek!" : "Varredura concluída! Nova previsão local gerada.");
+          showToast("Varredura real concluída via DeepSeek!");
         }
       }
     }, 180);
@@ -772,25 +520,11 @@ export default function DashboardPage() {
 
     const matchesMaterial = selectedMaterial === "ALL" || ins.tags.some(t => {
       const tag = t.toLowerCase();
-      if (selectedMaterial === "arroz") return tag === "arroz" || tag === "grãos" || tag === "agro";
-      if (selectedMaterial === "feijao") return tag === "feijao" || tag === "feijão" || tag === "grãos" || tag === "agro";
-      if (selectedMaterial === "oleo") return tag === "oleo" || tag === "óleo" || tag === "soja" || tag === "grãos";
-      if (selectedMaterial === "leite") return tag === "leite" || tag === "laticínios" || tag === "laticinios" || tag === "agro";
-      if (selectedMaterial === "cafe") return tag === "cafe" || tag === "café" || tag === "grãos" || tag === "bebidas";
-      if (selectedMaterial === "carne") return tag === "carne" || tag === "boi" || tag === "agro";
-      if (selectedMaterial === "azeite") return tag === "azeite" || tag === "importados" || tag === "óleo" || tag === "oleo";
-      if (selectedMaterial === "trigo") return tag === "trigo" || tag === "farinha" || tag === "pão" || tag === "panificacao";
-      if (selectedMaterial === "acucar") return tag === "acucar" || tag === "açúcar" || tag === "agro";
-      if (selectedMaterial === "queijo") return tag === "queijo" || tag === "laticínios" || tag === "laticinios" || tag === "fiscal";
-      if (selectedMaterial === "cerveja") return tag === "cerveja" || tag === "bebidas";
-      if (selectedMaterial === "diesel") return tag === "diesel" || tag === "combustível" || tag === "logística" || tag === "logistica";
-      if (selectedMaterial === "frango") return tag === "frango" || tag === "aves" || tag === "agro" || tag === "carne";
-      if (selectedMaterial === "sabao") return tag === "sabao" || tag === "sabão" || tag === "limpeza" || tag === "química" || tag === "quimica";
-      if (selectedMaterial === "margarina") return tag === "margarina" || tag === "laticínios" || tag === "laticinios" || tag === "soja";
-      if (selectedMaterial === "macarrao") return tag === "macarrao" || tag === "macarrão" || tag === "trigo" || tag === "massa" || tag === "massas";
-      if (selectedMaterial === "cremedental") return tag === "cremedental" || tag === "dental" || tag === "higiene" || tag === "creme";
-      if (selectedMaterial === "papelhigienico") return tag === "papelhigienico" || tag === "papel" || tag === "higiene" || tag === "higienico" || tag === "higiênico";
-      return false;
+      const insumo = getInsumoById(selectedMaterial);
+      if (insumo) {
+        return tag === insumo.id || insumo.keywords.some(k => tag.includes(k)) || tag === insumo.category;
+      }
+      return tag.includes(selectedMaterial.replace(/_/g, ""));
     });
 
     return matchesSearch && matchesSeverity && matchesType && matchesMaterial;
@@ -809,14 +543,41 @@ export default function DashboardPage() {
   const chartHeight = 110;
   const paddingTop = 20;
 
-  // Compute price line points
+  // Smooth curve helper (Catmull-Rom → cubic bezier)
+  function catmullRomToBezier(pts: { x: number; y: number }[]): string {
+    if (pts.length < 2) return "";
+    let path = `M ${pts[0].x},${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[Math.min(pts.length - 1, i + 2)];
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      path += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2.x},${p2.y}`;
+    }
+    return path;
+  }
+
+  // Compute price line points as {x, y} for smooth interpolation
   const pricePoints = activeData.map((d: any, i: number) => {
     const x = paddingLeft + (i / (activeData.length - 1)) * chartWidth;
     const y = paddingTop + chartHeight - ((d.price - minPrice) / priceRange) * chartHeight;
-    return `${x},${y}`;
+    return { x, y };
   });
-  const pricePath = "M " + pricePoints.join(" L ");
-  const priceFill = `${pricePath} L ${paddingLeft + chartWidth},${paddingTop + chartHeight} L ${paddingLeft},${paddingTop + chartHeight} Z`;
+  const smoothPath = pricePoints.length > 1 ? catmullRomToBezier(pricePoints) : "";
+  const fillPath = pricePoints.length > 1
+    ? `${smoothPath} L ${pricePoints[pricePoints.length - 1].x},${paddingTop + chartHeight} L ${pricePoints[0].x},${paddingTop + chartHeight} Z`
+    : "";
+  // Calculate change % from previous point for tooltip
+  const getChangePct = (idx: number): number | null => {
+    if (idx <= 0) return null;
+    const prev = activeData[idx - 1].price;
+    const curr = activeData[idx].price;
+    return ((curr - prev) / prev) * 100;
+  };
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8 relative">
@@ -898,7 +659,12 @@ export default function DashboardPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none">
               <div>
                 <h3 className="text-sm font-bold text-white tracking-wide">Projeção e Alertas de Preços</h3>
-                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5">Tendências futuras e melhor momento para comprar</p>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5">
+                  {selectedMaterial !== "ALL"
+                    ? `${getInsumoById(selectedMaterial)?.emoji ?? ""} ${getInsumoById(selectedMaterial)?.name ?? ""} — Tendências e melhor momento para comprar`
+                    : "Tendências futuras e melhor momento para comprar"
+                  }
+                </p>
               </div>
               <div className="flex bg-white/[0.02] border border-white/[0.04] rounded-lg p-0.5 text-[10px] self-start sm:self-auto">
                 <button
@@ -920,21 +686,56 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Material selector tabs */}
-            <div className="flex flex-wrap gap-2 border-b border-white/[0.03] pb-3 select-none">
-              {MATERIALS.map((m) => (
-                <button
-                  key={m.value}
-                  onClick={() => setSelectedMaterial(m.value as any)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                    selectedMaterial === m.value
-                      ? "bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 shadow-[0_0_12px_rgba(34,211,238,0.15)]"
-                      : "bg-white/[0.01] hover:bg-white/[0.03] text-zinc-400 hover:text-zinc-200 border border-white/[0.04]"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
+            {/* Material search + dropdown */}
+            <div className="relative border-b border-white/[0.03] pb-3 select-none">
+              <div className="flex items-center gap-2 bg-white/[0.015] border border-white/[0.04] focus-within:border-cyan-500/30 rounded-xl px-3.5 py-2 transition-colors duration-300">
+                <span className="text-zinc-500 text-sm select-none">🔍</span>
+                <input
+                  type="text"
+                  placeholder="Buscar insumo por nome ou categoria..."
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  className="w-full bg-transparent outline-none text-sm text-white placeholder:text-zinc-600"
+                />
+                {selectedMaterial !== "ALL" && (
+                  <button
+                    onClick={() => { setSelectedMaterial("ALL"); setProductSearch(""); }}
+                    className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              {productSearch && (
+                <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto bg-zinc-900 border border-white/[0.06] rounded-xl shadow-2xl">
+                  <button
+                    onClick={() => { setSelectedMaterial("ALL"); setProductSearch(""); }}
+                    className={`w-full text-left px-3.5 py-2 text-xs transition-colors ${
+                      selectedMaterial === "ALL" ? "bg-cyan-500/10 text-cyan-300" : "text-zinc-400 hover:text-white hover:bg-white/[0.02]"
+                    }`}
+                  >
+                    🌍 Todos os Produtos
+                  </button>
+                  {ALL_INSUMOS
+                    .filter(i =>
+                      i.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+                      i.keywords.some(k => k.includes(productSearch.toLowerCase())) ||
+                      i.category.includes(productSearch.toLowerCase())
+                    )
+                    .slice(0, 30)
+                    .map(i => (
+                      <button
+                        key={i.id}
+                        onClick={() => { setSelectedMaterial(i.id); setProductSearch(""); }}
+                        className={`w-full text-left px-3.5 py-2 text-xs transition-colors ${
+                          selectedMaterial === i.id ? "bg-cyan-500/10 text-cyan-300" : "text-zinc-400 hover:text-white hover:bg-white/[0.02]"
+                        }`}
+                      >
+                        {i.emoji} {i.name}
+                      </button>
+                    ))}
+                </div>
+              )}
             </div>
 
             {/* SVG Chart Container */}
@@ -942,13 +743,30 @@ export default function DashboardPage() {
               <svg className="w-full h-full" viewBox="0 0 500 160" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="chart-fill-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.15" />
-                    <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.0" />
+                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.25" />
+                    <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.08" />
+                    <stop offset="100%" stopColor="#34d399" stopOpacity="0.0" />
                   </linearGradient>
                   <linearGradient id="line-stroke-grad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#34d399" />
-                    <stop offset="100%" stopColor="#22d3ee" />
+                    <stop offset="0%" stopColor="#8b5cf6" />
+                    <stop offset="50%" stopColor="#22d3ee" />
+                    <stop offset="100%" stopColor="#34d399" />
                   </linearGradient>
+                  <filter id="line-glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                  <filter id="line-glow-intense" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="5" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
                 </defs>
 
                 {/* Horizontal Gridlines & Price Labels */}
@@ -962,9 +780,9 @@ export default function DashboardPage() {
                         y1={y}
                         x2={paddingLeft + chartWidth}
                         y2={y}
-                        stroke="rgba(255, 255, 255, 0.03)"
+                        stroke="rgba(255, 255, 255, 0.05)"
                         strokeWidth="1"
-                        strokeDasharray="2 3"
+                        strokeDasharray="4 4"
                       />
                       <text
                         x={paddingLeft - 8}
@@ -979,13 +797,42 @@ export default function DashboardPage() {
                   );
                 })}
 
-                {/* Price Gradient Area */}
-                <path d={priceFill} fill="url(#chart-fill-grad)" />
+                {/* Price Gradient Area — animated opacity */}
+                <motion.path
+                  d={fillPath}
+                  fill="url(#chart-fill-grad)"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                />
 
-                {/* Price Line */}
-                <path d={pricePath} stroke="url(#line-stroke-grad)" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+                {/* Price Line Glow (behind) */}
+                <motion.path
+                  d={smoothPath}
+                  stroke="url(#line-stroke-grad)"
+                  strokeWidth="6"
+                  fill="none"
+                  strokeLinecap="round"
+                  filter="url(#line-glow)"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 0.35 }}
+                  transition={{ duration: 1.2, ease: "easeInOut" }}
+                  style={{ pointerEvents: "none" }}
+                />
 
-                {/* Status Dot Markers for All Data Points */}
+                {/* Price Line — animated draw */}
+                <motion.path
+                  d={smoothPath}
+                  stroke="url(#line-stroke-grad)"
+                  strokeWidth="3.5"
+                  fill="none"
+                  strokeLinecap="round"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1.2, ease: "easeInOut" }}
+                />
+
+                {/* Status Dot Markers with Staggered Entrance */}
                 {activeData.map((d: any, i: number) => {
                   const x = paddingLeft + (i / (activeData.length - 1)) * chartWidth;
                   const y = paddingTop + chartHeight - ((d.price - minPrice) / priceRange) * chartHeight;
@@ -995,12 +842,15 @@ export default function DashboardPage() {
                   if (d.status === "high") dotColor = "fill-red-400 stroke-red-500/30";
 
                   return (
-                    <circle
+                    <motion.circle
                       key={i}
                       cx={x}
                       cy={y}
                       r="4"
                       className={`${dotColor} stroke-[3px]`}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.8 + i * 0.08, duration: 0.35, ease: "backOut" }}
                     />
                   );
                 })}
@@ -1008,21 +858,44 @@ export default function DashboardPage() {
                 {/* Vertical Guideline & Hover Point */}
                 {hoveredIndex !== null && (
                   <>
-                    <line
+                    <motion.line
                       x1={paddingLeft + (hoveredIndex / (activeData.length - 1)) * chartWidth}
                       y1={paddingTop}
                       x2={paddingLeft + (hoveredIndex / (activeData.length - 1)) * chartWidth}
                       y2={paddingTop + chartHeight}
-                      stroke="rgba(255, 255, 255, 0.15)"
+                      stroke="rgba(255, 255, 255, 0.12)"
                       strokeWidth="1"
+                      strokeDasharray="3 3"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
                     />
-                    <circle
+                    <motion.circle
                       cx={paddingLeft + (hoveredIndex / (activeData.length - 1)) * chartWidth}
                       cy={paddingTop + chartHeight - ((activeData[hoveredIndex].price - minPrice) / priceRange) * chartHeight}
-                      r="6"
+                      r="7"
                       fill="#ffffff"
                       stroke="#8b5cf6"
-                      strokeWidth="2"
+                      strokeWidth="2.5"
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.5, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    />
+                    {/* Hover dot pulse ring */}
+                    <motion.circle
+                      cx={paddingLeft + (hoveredIndex / (activeData.length - 1)) * chartWidth}
+                      cy={paddingTop + chartHeight - ((activeData[hoveredIndex].price - minPrice) / priceRange) * chartHeight}
+                      r="12"
+                      fill="none"
+                      stroke="#8b5cf6"
+                      strokeWidth="0.8"
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.5, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      className="pointer-events-none"
                     />
                   </>
                 )}
@@ -1053,31 +926,50 @@ export default function DashboardPage() {
                 ))}
               </div>
 
-              {/* Absolute React Tooltip */}
-              {hoveredIndex !== null && (
-                <div
-                  style={{
-                    left: `calc(${paddingLeft}px + ${(hoveredIndex / (activeData.length - 1)) * 100}% - ${(hoveredIndex / (activeData.length - 1)) * (paddingLeft + paddingRight)}px)`,
-                    top: "-35px"
-                  }}
-                  className="absolute z-20 pointer-events-none glass px-3 py-2.5 rounded-lg text-[9px] -translate-x-1/2 flex flex-col gap-1 border-white/[0.08] shadow-xl text-left select-none min-w-[120px]"
-                >
-                  <span className="font-bold text-white text-[10px] mb-0.5">{activeData[hoveredIndex].day}</span>
-                  <div className="flex items-center gap-1.5 text-zinc-400">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                    Preço Estimado: <strong className="text-white font-mono">R$ {activeData[hoveredIndex].price.toFixed(2)}</strong>
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    {activeData[hoveredIndex].status === "buy" ? (
-                      <span className="text-[8px] bg-emerald-500/20 text-emerald-300 font-extrabold px-1.5 py-0.5 rounded uppercase">💡 Compra Recomendada</span>
-                    ) : activeData[hoveredIndex].status === "high" ? (
-                      <span className="text-[8px] bg-red-500/20 text-red-300 font-extrabold px-1.5 py-0.5 rounded uppercase">🚨 Período de Alta</span>
-                    ) : (
-                      <span className="text-[8px] bg-zinc-500/20 text-zinc-300 font-extrabold px-1.5 py-0.5 rounded uppercase">✓ Preço Estável</span>
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* Absolute React Tooltip with AnimatePresence */}
+              <AnimatePresence>
+                {hoveredIndex !== null && (
+                  <motion.div
+                    key={hoveredIndex}
+                    initial={{ opacity: 0, y: 6, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.9 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    style={{
+                      left: `calc(${paddingLeft}px + ${(hoveredIndex / (activeData.length - 1)) * 100}% - ${(hoveredIndex / (activeData.length - 1)) * (paddingLeft + paddingRight)}px)`,
+                      top: "-42px"
+                    }}
+                    className="absolute z-20 pointer-events-none glass px-3 py-2.5 rounded-lg text-[9px] -translate-x-1/2 flex flex-col gap-1.5 border border-cyan-500/15 shadow-xl text-left select-none min-w-[130px]"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-bold text-white text-[10px]">{activeData[hoveredIndex].day}</span>
+                      {(() => {
+                        const pct = getChangePct(hoveredIndex);
+                        if (pct === null) return null;
+                        const isUp = pct > 0;
+                        return (
+                          <span className={`text-[8px] font-bold font-mono ${isUp ? "text-red-400" : "text-emerald-400"}`}>
+                            {isUp ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}%
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-zinc-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                      Preço: <strong className="text-white font-mono text-[10px]">R$ {activeData[hoveredIndex].price.toFixed(2)}</strong>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {activeData[hoveredIndex].status === "buy" ? (
+                        <span className="text-[8px] bg-emerald-500/20 text-emerald-300 font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">💡 Compra Recomendada</span>
+                      ) : activeData[hoveredIndex].status === "high" ? (
+                        <span className="text-[8px] bg-red-500/20 text-red-300 font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">🚨 Período de Alta</span>
+                      ) : (
+                        <span className="text-[8px] bg-zinc-500/20 text-zinc-300 font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">✓ Preço Estável</span>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Quick Chart Legend */}
@@ -1178,6 +1070,7 @@ export default function DashboardPage() {
                       setSelectedInsight(insight);
                       if (!insight.isRead) markAsRead(insight.id);
                     }}
+                    onDelete={deleteInsight}
                   />
                 ))}
               </div>
@@ -1216,6 +1109,26 @@ export default function DashboardPage() {
                 <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5">Status e controle preditivo</p>
               </div>
               <span className="text-xs">🤖</span>
+            </div>
+
+            {/* Target Insumo Selector */}
+            <div className="space-y-1.5">
+              <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold">Alvo da Varredura</span>
+              <div className="relative">
+                <select
+                  value={scanInsumoId}
+                  onChange={(e) => setScanInsumoId(e.target.value)}
+                  className="appearance-none w-full bg-white/[0.02] border border-white/[0.04] text-zinc-300 hover:text-white rounded-xl px-3 py-2 pr-8 text-xs font-semibold outline-none cursor-pointer transition-colors duration-300"
+                >
+                  <option value="ALL" className="bg-zinc-950 text-zinc-400">🌍 Todos os Insumos</option>
+                  {ALL_INSUMOS.map(i => (
+                    <option key={i.id} value={i.id} className="bg-zinc-950 text-zinc-400">
+                      {i.emoji} {i.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-zinc-500">▼</span>
+              </div>
             </div>
 
             {/* Circular gauges status list */}
@@ -1303,269 +1216,7 @@ export default function DashboardPage() {
             </div>
           </motion.div>
 
-          {/* ── Quick Actions Panel ── */}
-          <motion.div variants={itemVariants} className="glass rounded-xl p-6 border-white/[0.04] space-y-4">
-            <div>
-              <h3 className="text-sm font-bold text-white tracking-wide">Ações de Inteligência</h3>
-              <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5">Operações de arbitragem</p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => showToast("Solicitação de novo sinal de arbitragem configurada.")}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.015] hover:bg-white/[0.03] border border-white/[0.03] text-left text-xs font-semibold text-zinc-300 hover:text-white transition-colors duration-200"
-              >
-                <span>➕ Conectar Nova Fonte Fiscal</span>
-                <span className="text-[10px] text-zinc-600">📡</span>
-              </button>
-              <button
-                onClick={() => showToast("Exportando planilha de cotações e economias em CSV...")}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.015] hover:bg-white/[0.03] border border-white/[0.03] text-left text-xs font-semibold text-zinc-300 hover:text-white transition-colors duration-200"
-              >
-                <span>📥 Exportar Cotações & Margens (CSV)</span>
-                <span className="text-[10px] text-zinc-600">CSV</span>
-              </button>
-              <button
-                onClick={() => showToast("Configuração de relatórios mensais de cotações salva.")}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.015] hover:bg-white/[0.03] border border-white/[0.03] text-left text-xs font-semibold text-zinc-300 hover:text-white transition-colors duration-200"
-              >
-                <span>✉️ Agendar Relatório de Preços (PDF)</span>
-                <span className="text-[10px] text-zinc-600">PDF</span>
-              </button>
-            </div>
-          </motion.div>
 
-          {/* ── Decision Calculators Panel ── */}
-          <motion.div variants={itemVariants} className="glass rounded-xl p-6 border-white/[0.04] space-y-4">
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-              <div>
-                <h3 className="text-sm font-bold text-white tracking-wide">Calculadoras de Decisão</h3>
-                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5">Simulação de Impacto Financeiro</p>
-              </div>
-              <span className="text-xs">🧮</span>
-            </div>
-
-            {/* Tabs */}
-            <div className="grid grid-cols-2 gap-2 bg-black/25 p-1 rounded-lg border border-white/[0.04]">
-              <button
-                onClick={() => setActiveCalcTab("ECONOMIA")}
-                className={`py-1.5 rounded-md text-[10px] font-bold transition-all duration-200 ${
-                  activeCalcTab === "ECONOMIA"
-                    ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30"
-                    : "text-zinc-400 hover:text-zinc-200 border border-transparent"
-                }`}
-              >
-                💰 Economia de Caixa
-              </button>
-              <button
-                onClick={() => setActiveCalcTab("REPASSE")}
-                className={`py-1.5 rounded-md text-[10px] font-bold transition-all duration-200 ${
-                  activeCalcTab === "REPASSE"
-                    ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30"
-                    : "text-zinc-400 hover:text-zinc-200 border border-transparent"
-                }`}
-              >
-                🏷️ Repasse de Preço
-              </button>
-            </div>
-
-            {/* TAB CONTENT: Economia de Caixa */}
-            {activeCalcTab === "ECONOMIA" && (
-              <div className="space-y-3.5 text-xs text-zinc-300">
-                {/* Inputs */}
-                <div className="space-y-2.5">
-                  {/* Volume Mensal */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-zinc-400 font-medium">
-                      <span>Volume Mensal (unidades/kg)</span>
-                      <span className="text-white font-mono font-bold">{calcVolume}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="50"
-                      max="5000"
-                      step="50"
-                      value={calcVolume}
-                      onChange={(e) => setCalcVolume(Number(e.target.value))}
-                      className="w-full h-1 bg-white/[0.06] rounded-lg appearance-none cursor-pointer accent-emerald-400"
-                    />
-                  </div>
-
-                  {/* Preço de Custo Atual */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-zinc-400 font-medium">
-                      <span>Preço de Compra Atual</span>
-                      <span className="text-white font-mono font-bold">R$ {calcPrecoAtual.toFixed(2)}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1.00"
-                      max="200.00"
-                      step="0.50"
-                      value={calcPrecoAtual}
-                      onChange={(e) => setCalcPrecoAtual(Number(e.target.value))}
-                      className="w-full h-1 bg-white/[0.06] rounded-lg appearance-none cursor-pointer accent-emerald-400"
-                    />
-                  </div>
-
-                  {/* Aumento Projetado % */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-zinc-400 font-medium">
-                      <span>Aumento Projetado da IA</span>
-                      <span className="text-emerald-400 font-mono font-bold">+{calcAumento}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="2"
-                      max="50"
-                      step="1"
-                      value={calcAumento}
-                      onChange={(e) => setCalcAumento(Number(e.target.value))}
-                      className="w-full h-1 bg-white/[0.06] rounded-lg appearance-none cursor-pointer accent-emerald-400"
-                    />
-                  </div>
-
-                  {/* Dias de Estocagem */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-zinc-400 font-medium">
-                      <span>Período de Estocagem Antecipada</span>
-                      <span className="text-white font-mono font-bold">{calcEstoqueDias} dias</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="7"
-                      max="90"
-                      step="1"
-                      value={calcEstoqueDias}
-                      onChange={(e) => setCalcEstoqueDias(Number(e.target.value))}
-                      className="w-full h-1 bg-white/[0.06] rounded-lg appearance-none cursor-pointer accent-emerald-400"
-                    />
-                  </div>
-                </div>
-
-                {/* Outputs Panel */}
-                {(() => {
-                  const custoUnitarioFuturo = calcPrecoAtual * (1 + calcAumento / 100);
-                  const diferencaUnidade = custoUnitarioFuturo - calcPrecoAtual;
-                  const volumeEstocagem = (calcVolume / 30) * calcEstoqueDias;
-                  const economiaTotal = volumeEstocagem * diferencaUnidade;
-                  const custoFuturoSemAntecipacao = volumeEstocagem * custoUnitarioFuturo;
-                  const custoComAntecipacao = volumeEstocagem * calcPrecoAtual;
-
-                  return (
-                    <div className="bg-emerald-500/[0.02] border border-emerald-500/20 rounded-xl p-3.5 space-y-2 mt-4 select-none relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl pointer-events-none" />
-                      <div className="flex justify-between items-center text-[10px] text-zinc-400 uppercase tracking-widest font-mono">
-                        <span>Economia de Caixa</span>
-                        <span className="text-emerald-400 font-bold">Calculado</span>
-                      </div>
-                      <div className="text-xl font-extrabold text-white tracking-tight">
-                        R$ {economiaTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </div>
-                      <p className="text-[9px] text-zinc-500 leading-normal">
-                        Ao antecipar a compra de <span className="text-zinc-300 font-bold">{Math.round(volumeEstocagem)} unidades</span> para estocagem de {calcEstoqueDias} dias, você evita desembolsar R$ {custoFuturoSemAntecipacao.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} pelo preço reajustado.
-                      </p>
-                      <div className="border-t border-white/[0.04] pt-2 flex justify-between text-[9px] text-zinc-400 font-mono">
-                        <span>Custo Travado: R$ {custoComAntecipacao.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>
-                        <span>Custo Futuro: R$ {custoFuturoSemAntecipacao.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-
-            {/* TAB CONTENT: Repasse de Preços */}
-            {activeCalcTab === "REPASSE" && (
-              <div className="space-y-3.5 text-xs text-zinc-300">
-                {/* Inputs */}
-                <div className="space-y-2.5">
-                  {/* Custo de Compra Atual */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-zinc-400 font-medium">
-                      <span>Custo de Compra Atual (R$)</span>
-                      <span className="text-white font-mono font-bold">R$ {repasseCustoAtual.toFixed(2)}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1.00"
-                      max="150.00"
-                      step="0.50"
-                      value={repasseCustoAtual}
-                      onChange={(e) => {
-                        const val = Number(e.target.value);
-                        setRepasseCustoAtual(val);
-                        if (repasseNovoCusto < val) setRepasseNovoCusto(parseFloat((val * 1.1).toFixed(2)));
-                      }}
-                      className="w-full h-1 bg-white/[0.06] rounded-lg appearance-none cursor-pointer accent-cyan-400"
-                    />
-                  </div>
-
-                  {/* Novo Custo com Aumento */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-zinc-400 font-medium">
-                      <span>Novo Custo Pós-Reajuste (R$)</span>
-                      <span className="text-white font-mono font-bold">R$ {repasseNovoCusto.toFixed(2)}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1.00"
-                      max="200.00"
-                      step="0.50"
-                      value={repasseNovoCusto}
-                      onChange={(e) => setRepasseNovoCusto(Number(e.target.value))}
-                      className="w-full h-1 bg-white/[0.06] rounded-lg appearance-none cursor-pointer accent-cyan-400"
-                    />
-                  </div>
-
-                  {/* Margem Target % */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-zinc-400 font-medium">
-                      <span>Margem Bruta Alvo (%)</span>
-                      <span className="text-cyan-400 font-mono font-bold">{repasseMargemAlvo}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="5"
-                      max="60"
-                      step="1"
-                      value={repasseMargemAlvo}
-                      onChange={(e) => setRepasseMargemAlvo(Number(e.target.value))}
-                      className="w-full h-1 bg-white/[0.06] rounded-lg appearance-none cursor-pointer accent-cyan-400"
-                    />
-                  </div>
-                </div>
-
-                {/* Outputs Panel */}
-                {(() => {
-                  const divisor = 1 - repasseMargemAlvo / 100;
-                  const precoVendaAtual = repasseCustoAtual / divisor;
-                  const precoVendaNovo = repasseNovoCusto / divisor;
-                  const repasseNecessario = precoVendaNovo - precoVendaAtual;
-                  const percentualAumentoCusto = ((repasseNovoCusto - repasseCustoAtual) / repasseCustoAtual) * 100;
-
-                  return (
-                    <div className="bg-cyan-500/[0.02] border border-cyan-500/20 rounded-xl p-3.5 space-y-2 mt-4 select-none relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-xl pointer-events-none" />
-                      <div className="flex justify-between items-center text-[10px] text-zinc-400 uppercase tracking-widest font-mono">
-                        <span>Preço de Venda Sugerido</span>
-                        <span className="text-cyan-400 font-bold">Calculado</span>
-                      </div>
-                      <div className="text-xl font-extrabold text-white tracking-tight">
-                        R$ {precoVendaNovo.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </div>
-                      <p className="text-[9px] text-zinc-500 leading-normal">
-                        Para manter a sua margem bruta de <span className="text-zinc-300 font-bold">{repasseMargemAlvo}%</span> diante da alta de {percentualAumentoCusto.toFixed(1)}% no custo de entrada, o preço final de gôndola deve subir de R$ {precoVendaAtual.toFixed(2)} para R$ {precoVendaNovo.toFixed(2)}.
-                      </p>
-                      <div className="border-t border-white/[0.04] pt-2 flex justify-between text-[9px] text-zinc-400 font-mono">
-                        <span>Ajuste de Preço: +R$ {repasseNecessario.toFixed(2)}</span>
-                        <span>Preço Antigo: R$ {precoVendaAtual.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-          </motion.div>
 
         </div>
 

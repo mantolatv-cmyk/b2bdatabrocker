@@ -34,8 +34,12 @@ export class LLMService {
   private readonly circuit: CircuitBreaker;
 
   constructor(apiKey?: string, model?: string) {
-    this.client = new OpenAI({ apiKey: apiKey ?? env.OPENAI_API_KEY });
-    this.model = model ?? env.OPENAI_COMPLETION_MODEL;
+    const isDeepSeek = !!env.DEEPSEEK_API_KEY && (!env.OPENAI_API_KEY || env.OPENAI_API_KEY === 'sk-placeholder' || apiKey === 'sk-placeholder');
+    const key = isDeepSeek ? env.DEEPSEEK_API_KEY : (apiKey ?? env.OPENAI_API_KEY);
+    const baseURL = isDeepSeek ? (env.DEEPSEEK_API_URL ?? 'https://api.deepseek.com/v1') : undefined;
+
+    this.client = new OpenAI({ apiKey: key, baseURL });
+    this.model = isDeepSeek ? 'deepseek-chat' : (model ?? env.OPENAI_COMPLETION_MODEL);
     this.circuit = {
       state: 'closed',
       failures: 0,
@@ -53,6 +57,7 @@ export class LLMService {
     temperature?: number;
     maxTokens?: number;
     systemPrompt?: string;
+    responseFormat?: { type: 'json_object' | 'text' };
   }): Promise<string> {
     this.checkCircuit();
 
@@ -69,6 +74,7 @@ export class LLMService {
         messages,
         temperature: params.temperature ?? 0.7,
         max_tokens: params.maxTokens ?? 2048,
+        response_format: params.responseFormat,
       });
 
       this.circuit.failures = 0;

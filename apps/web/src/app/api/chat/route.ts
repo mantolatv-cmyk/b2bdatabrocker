@@ -13,6 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -63,17 +64,14 @@ export async function POST(request: NextRequest) {
 
           // ── Step 2: Vector Search (pgvector) ──
           try {
-            const { PrismaClient } = await import("@prisma/client");
-            const prisma = new PrismaClient();
-
             const embeddingStr = `[${queryEmbedding.join(",")}]`;
 
             const results = (await prisma.$queryRawUnsafe(
               `SELECT vk.content, vk.summary,
                       1 - (vk.embedding <=> $1::vector) as similarity,
-                      rd.source_url
+                      rd."sourceUrl" as source_url
                FROM vector_knowledge vk
-               JOIN raw_data rd ON rd.id = vk.raw_data_id
+               JOIN raw_data rd ON rd.id = vk."rawDataId"
                WHERE 1 - (vk.embedding <=> $1::vector) >= 0.7
                ORDER BY vk.embedding <=> $1::vector
                LIMIT 5`,
@@ -89,8 +87,6 @@ export async function POST(request: NextRequest) {
                 .filter((r) => r.source_url)
                 .map((r) => r.source_url!);
             }
-
-            await prisma.$disconnect();
           } catch (dbError) {
             console.warn("[RAG] DB not available, using LLM without context:", dbError);
           }
@@ -103,7 +99,7 @@ export async function POST(request: NextRequest) {
     // ── Step 3: Build RAG Prompt ──
     const systemPrompt = `Você é o Atlas, o assistente avançado de inteligência artificial do Terminal para Redes de Supermercados.
     Sua inteligência é impulsionada por 4 agentes virtuais especialistas (Agente Climático/Agro, Agente Logístico, Agente Fiscal e Agente Analista RAG) que cruzam dados de clima, fretes/combustíveis e impostos (como alíquotas de ICMS e Substituição Tributária - ST) para antecipar oscilações de preços nas gôndolas e projetar cenários ideais de abastecimento.
-    Sua missão é ajudar diretores e gerentes de compras a prever riscos de alta e oportunidades de descontos para 12 produtos e insumos principais: arroz, feijão, óleo de soja, leite UHT, café almofada, alcatra bovina, azeite de oliva, pão de forma, açúcar refinado, queijo muçarela, cerveja e diesel (custo de frete).
+    Sua missão é ajudar diretores e gerentes de compras a prever riscos de alta e oportunidades de descontos para mais de 150 produtos e insumos de supermercado, incluindo mercearia, laticínios, carnes, bebidas, limpeza, higiene, hortifrúti, congelados e muito mais.
     Responda em português brasileiro. Seja extremamente amigável, direto, focado em estratégia de compras e pé no chão. Dê conselhos práticos e simples de entender, explicando de forma clara as correlações econômicas por trás dos aumentos e quedas.
     Destaque alertas de alta de custos em **negrito** e oportunidades de economia ou compras preventivas em *itálico*. Use tabelas ou marcadores markdown para facilitar a visualização de prazos e impactos de caixa.`;
 
