@@ -105,7 +105,7 @@ Você deve retornar estritamente um objeto JSON no seguinte formato:
 {
   "content": "Resumo limpo e focado em impactos econômicos para redes varejistas e setor de commodities",
   "category": "clima" | "logistica" | "tributario" | "macro" | "regulatorio" | "mercado" | "agro",
-  "commoditiesImpacted": ["arroz", "trigo", "soja", "milho", "cafe", "carne", "frango", "oleo", "diesel", "gasolina", "energia", "acucar"],
+  "commoditiesImpacted": ["petroleo_brent", "soja", "minerio_ferro", "milho", "aco_bobina", "etanol_hidratado"],
   "sourceCredibility": 9,
   "publishedAt": "2026-05-20T12:00:00Z"
 }`
@@ -123,7 +123,7 @@ Você deve retornar estritamente um objeto JSON no seguinte formato:
     return {
       content: parsed.content,
       category: parsed.category || "macro",
-      commoditiesImpacted: Array.isArray(parsed.commoditiesImpacted) ? parsed.commoditiesImpacted : ["arroz"],
+      commoditiesImpacted: Array.isArray(parsed.commoditiesImpacted) ? parsed.commoditiesImpacted : ["petroleo_brent"],
       sourceCredibility: Number(parsed.sourceCredibility) || 8,
       publishedAt: parsed.publishedAt || new Date().toISOString(),
     };
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
         structured = {
           content: articleText,
           category: source.category,
-          commoditiesImpacted: ["arroz"],
+          commoditiesImpacted: ["petroleo_brent"],
           sourceCredibility: 7,
           publishedAt: new Date().toISOString(),
         };
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
       const text = `${fallback.title}. ${fallback.description}`;
       let structured = await structureWithDeepSeek(text, process.env.DEEPSEEK_API_KEY || "");
       if (!structured) {
-        structured = { content: text, category: "macro", commoditiesImpacted: ["arroz"], sourceCredibility: 7, publishedAt: new Date().toISOString() };
+        structured = { content: text, category: "macro", commoditiesImpacted: ["petroleo_brent"], sourceCredibility: 7, publishedAt: new Date().toISOString() };
       }
       await persistKnowledgeChunk({ ...structured, embedding: generateMockEmbedding() });
       results.push({ source: "fallback", title: fallback.title, status: "INGESTED" });

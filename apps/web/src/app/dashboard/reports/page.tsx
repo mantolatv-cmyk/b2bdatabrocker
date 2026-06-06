@@ -39,12 +39,10 @@ interface ReportData {
 }
 
 const CATEGORIES = [
-  { id: "graos", label: "🌾 Grãos (Arroz, Feijão, etc.)" },
-  { id: "laticinios", label: "🥛 Laticínios (Leite, Queijo)" },
-  { id: "proteinas", label: "🥩 Proteínas (Carne Bovina)" },
-  { id: "oleos", label: "🌻 Óleos e Gorduras (Óleo, Azeite)" },
-  { id: "bebidas", label: "🍺 Bebidas (Cerveja)" },
-  { id: "logistica", label: "🚚 Logística & Combustível (Diesel)" },
+  { id: "agronegocio", label: "🌾 Agronegócio (Soja, Milho, Boi)" },
+  { id: "energia", label: "⚡ Energia & Combustíveis (Brent, Etanol)" },
+  { id: "metais", label: "🪨 Mineração & Siderurgia (Aço, Minério)" },
+  { id: "quimicos", label: "🧪 Químicos & Fertilizantes (Ureia, Celulose)" },
 ];
 
 // Archived reports are loaded dynamically from /api/reports
@@ -53,7 +51,7 @@ const CATEGORIES = [
 export default function ReportsPage() {
   const [config, setConfig] = useState<ReportConfig>({
     period: "30D",
-    categories: ["graos", "laticinios", "logistica"],
+    categories: ["agronegocio", "energia", "metais"],
     includeLogs: true,
     detailedAnalysis: true,
   });
@@ -127,7 +125,7 @@ export default function ReportsPage() {
           setIsGenerating(false);
           setActiveReport({
             id: `REP-${Math.floor(1000 + Math.random() * 9000)}`,
-            title: `Relatório Consolidado de Margem & Abastecimento — Atlas`,
+            title: `Relatório Consolidado de Risco & Suprimento Estratégico — Atlas`,
             generatedAt: new Date().toLocaleDateString("pt-BR") + " às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
             periodText: config.period === "7D" ? "Últimos 7 dias" : config.period === "30D" ? "Últimos 30 dias" : config.period === "90D" ? "Últimos 90 dias" : "Mês Corrente",
             stats: data.stats,
@@ -239,7 +237,7 @@ export default function ReportsPage() {
             Relatórios Executivos
           </h1>
           <p className="text-sm text-zinc-500 mt-1">
-            Gere consolidados analíticos em PDF e configure alertas periódicos para a gerência de abastecimento
+            Gere consolidados analíticos em PDF e configure alertas periódicos para diretoria de suprimentos e trading.
           </p>
         </div>
         <div className="text-xs text-zinc-500 font-mono glass px-3 py-1.5 rounded-lg flex items-center gap-2 select-none border-white/[0.04]">
@@ -426,7 +424,7 @@ export default function ReportsPage() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xl bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent font-black tracking-wider">ATLAS</span>
-                        <span className="text-[8px] uppercase tracking-widest font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1.5 py-0.5 rounded">Supermercados</span>
+                        <span className="text-[8px] uppercase tracking-widest font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1.5 py-0.5 rounded">Indústria & Trading</span>
                       </div>
                       <h2 className="text-xl font-bold text-white print-text-dark">{activeReport.title}</h2>
                       <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono font-bold">
@@ -480,7 +478,7 @@ export default function ReportsPage() {
                       <table className="w-full text-left text-xs border-collapse">
                         <thead>
                           <tr className="bg-white/[0.03] border-b border-white/[0.06] text-[10px] text-zinc-400 uppercase font-mono tracking-wider print-border print-bg-gray">
-                            <th className="py-2.5 px-4 print-text-dark">Produto de Gôndola</th>
+                            <th className="py-2.5 px-4 print-text-dark">Commodity / Insumo</th>
                             <th className="py-2.5 px-4 text-right print-text-dark">Preço Custo</th>
                             <th className="py-2.5 px-4 text-right print-text-dark">Projetado (IA)</th>
                             <th className="py-2.5 px-4 text-right print-text-dark">Variação</th>
@@ -550,7 +548,7 @@ export default function ReportsPage() {
                   {/* Signatures / Disclaimer Footer */}
                   <div className="border-t border-white/[0.08] pt-8 flex flex-col sm:flex-row justify-between items-center text-[10px] text-zinc-500 gap-4 print-border">
                     <p className="text-justify leading-normal max-w-sm">
-                      *Este relatório foi orquestrado pelos 4 agentes integrados da IA Atlas e é confidencial para uso exclusivo da diretoria de compras e gerência.
+                      *Este relatório foi orquestrado pelos 4 agentes integrados da IA Atlas e é confidencial para uso exclusivo da diretoria de suprimentos, hedge e C-level.
                     </p>
                     <div className="flex flex-col items-end gap-1 text-right">
                       <span className="font-bold text-zinc-400 print-text-dark">Atlas Inteligência Preditiva</span>

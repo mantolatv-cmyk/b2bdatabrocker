@@ -7,18 +7,17 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const RAW_SIGNALS_POOL = [
-  "Geada severa nos cafezais paulistas e mineiros reduz a safra do grão e força as distribuidoras a elevarem o preço do café moído nas prateleiras dos supermercados.",
-  "Boletim CEPEA aponta chuvas escassas nas lavouras do Sul, reduzindo drasticamente a safra de Arroz Tipo 1 e forçando o repasse de custos em 20 dias.",
-  "Regularização climática nas bacias de captação leiteira em Minas Gerais gera aumento de 18% na produção de leite cru, permitindo descontos no atacado de Leite UHT.",
-  "Aumento global nas tarifas portuárias e seca severa na Europa reduzem a oferta e elevam a cotação do Azeite de Oliva Extra Virgem importado no Porto de Santos.",
-  "O Diário Oficial publica decreto que altera as alíquotas de ICMS e Substituição Tributária (ST) sobre laticínios processados, encarecendo a muçarela e a manteiga.",
-  "Safra abundante de inverno de soja no Mato Grosso derruba o preço da saca e gera janela temporária de redução no custo do Óleo de Soja refinado de 900ml.",
-  "Clima quente nas regiões produtoras de feijão no interior de São Paulo antecipa colheitas, mas a baixa umidade gera perdas de qualidade do Feijão Carioca.",
-  "Petrobras anuncia reajuste de 5% no Óleo Diesel nas refinarias, elevando a tabela de frete rodoviário e encarecendo a logística de distribuição de alimentos de cesta básica.",
-  "Boas safras de cana-de-açúcar no interior paulista geram excedente de oferta no atacado de Açúcar Refinado, sugerindo janela ideal para compras em volume.",
-  "Abertura de novos mercados na Ásia acelera as exportações brasileiras de carne bovina, reuniões de oferta interna de cortes como Alcatra e forçando reajuste de preços.",
-  "Indústria de trigo anuncia reajuste no preço da farinha especial de panificação devido à desvalorização do Real frente ao Dólar, com impacto no Pão de Forma.",
-  "Fabricantes locais de cerveja pilsen fazem promoções agressivas de liquidação de estoques excedentes antes da transição de estação, oferecendo 6% de desconto."
+  "Tensões geopolíticas no Oriente Médio reduzem o tráfego no Canal de Suez, elevando o custo do frete marítimo e pressionando o preço do Petróleo Brent.",
+  "Relatório do USDA aponta quebra de safra de soja na América do Sul, forçando indústrias a revisarem estoques e contratos de farelo de soja.",
+  "China anuncia pacote de estímulos ao setor de infraestrutura, impulsionando os contratos futuros de Minério de Ferro e Bobinas a Quente de Aço.",
+  "O Diário Oficial publica decreto que altera as alíquotas de ICMS e Substituição Tributária sobre insumos químicos industriais, encarecendo a ureia e fertilizantes.",
+  "Boletim Focus sinaliza desvalorização persistente do Real, encarecendo as importações de insumos e pressionando as tradings de agronegócio.",
+  "Clima quente nas regiões produtoras do Sudeste antecipa colheitas, mas a baixa umidade afeta os canaviais, pressionando as cotações de Açúcar VHP e Etanol.",
+  "Petrobras anuncia reajuste de 5% no Óleo Diesel nas refinarias, elevando a tabela de frete rodoviário e encarecendo a logística nacional de suprimentos.",
+  "Baixa vazão das hidrelétricas força acionamento de usinas térmicas, aumentando o PLD e o custo da Energia Elétrica para indústrias eletrointensivas.",
+  "Abertura de novos mercados na Ásia acelera exportações brasileiras de carne bovina, reduzindo a oferta interna de Boi Gordo e forçando reajustes nos frigoríficos.",
+  "Indústria global reduz investimentos em mineração e estoques de alumínio caem na LME, indicando janela de compra favorável para indústrias de transformação.",
+  "OPEP+ surpreende mercado com cortes de produção, indicando forte pressão de custos sobre a cadeia global de derivados de petróleo e petroquímicos."
 ];
 
 const INSIGHTS_KEYWORDS = INSUMOS_KEYWORDS;
@@ -317,7 +316,7 @@ export async function POST(request: NextRequest) {
       chosenSignal = `${item.title}. ${item.description ? `Resumo: ${item.description.slice(0, 180)}...` : ""}`;
       chosenNewsUrl = item.link;
     } else {
-      chosenSignal = "Petrobras anuncia reajuste no Óleo Diesel, impactando frete rodoviário e logística de distribuição de alimentos.";
+      chosenSignal = "OPEP+ anuncia corte surpresa na produção, impactando a cotação global do barril de petróleo e custos logísticos industriais.";
       chosenNewsUrl = "https://g1.globo.com/agro/";
     }
 
@@ -407,12 +406,12 @@ export async function POST(request: NextRequest) {
       serverCard = {
         id: Math.random().toString(36).substring(2, 9),
         title: targetInsumo
-          ? `${targetInsumo.emoji} ${targetInsumo.name}: Oportunidade de Compra Preventiva`
-          : "Café Moído: Risco de Alta no Custo de Aquisição",
+          ? `${targetInsumo.emoji} ${targetInsumo.name}: Oportunidade de Hedge / Aquisição Estratégica`
+          : "Petróleo Brent: Risco de Alta e Impacto na Cadeia Logística",
         riskLevel: targetInsumo ? "OPPORTUNITY" : "WARNING",
-        commodity: targetInsumo ? targetInsumo.name : "Café Moído",
-        analysis: "Instabilidade climática severa e tarifas de frete elevadas sugerem reajustes no curto prazo.",
-        recommendedAction: "Antecipe contratos de fornecimento para garantir margem nas gôndolas.",
+        commodity: targetInsumo ? targetInsumo.name : "Petróleo Brent",
+        analysis: "Instabilidade macroeconômica e choques de oferta globais sugerem reajustes no curto prazo.",
+        recommendedAction: "Antecipe contratos de fornecimento ou monte posições de hedge para mitigar exposição.",
         createdAt: new Date()
       };
     }

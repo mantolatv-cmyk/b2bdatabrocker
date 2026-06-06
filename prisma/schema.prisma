@@ -343,7 +343,7 @@ model KnowledgeChunk {
   content             String                      @db.Text // O texto da notícia/relatório
   embedding           Unsupported("vector(1536)")? // O vetor semântico
   category            String                      // ex: "clima", "logistica", "tributario"
-  commoditiesImpacted String[]                    // ex: ["leite", "trigo", "soja"]
+  commoditiesImpacted String[]                    // ex: ["petroleo", "soja", "minerio_ferro"]
   sourceCredibility   Int                         // De 1 a 10
   publishedAt         DateTime
   createdAt           DateTime                    @default(now())

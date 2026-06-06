@@ -116,11 +116,9 @@ export async function POST(request: NextRequest) {
 
     // Compute real metrics
     const FINANCIAL_IMPACT_MAP: Record<string, number> = {
-      arroz: 14500, carne: 19000, leite: 6400, azeite: 8200,
-      diesel: 12000, queijo: 5900, frango: 4800, cafe: 7500,
-      sabao: 3200, margarina: 2900, macarrao: 4100, cremedental: 1800,
-      papelhigienico: 3700, feijao: 3800, oleo: 5200, acucar: 2600,
-      trigo: 4300, cerveja: 2100
+      petroleo_brent: 420000, petroleo_wti: 390000, diesel_s10: 120000, etanol_hidratado: 85000,
+      soja: 135000, farelo_soja: 215000, minerio_ferro: 650000, aco_bobina: 450000,
+      milho: 65000, ureia: 185000, cobre: 450000, boi_gordo: 235000, celulose_fibra: 320000
     };
 
     let cashSavings = 0;
@@ -169,7 +167,7 @@ export async function POST(request: NextRequest) {
     }));
 
     const executiveSummary = totalAlerts > 0
-      ? `No período de ${days} dias, o Terminal Atlas monitorou ${totalAlerts} variações relevantes nos mercados de commodities para supermercados. Identificamos ${opportunities} janela(s) de oportunidade de compra estratégica com economia potencial de ${fmtBRL(cashSavings)}, e ${criticalAlerts} alerta(s) crítico(s) de alta de custos totalizando ${fmtBRL(costsAvoided)} em risco exposto. O câmbio do dólar comercial está em R$ ${usdRate.toFixed(2)}, com IPCA em ${ipcaVal} e Selic em ${selicVal}.`
+      ? `No período de ${days} dias, o Terminal Atlas monitorou ${totalAlerts} variações relevantes nos mercados macroeconômicos e de commodities. Identificamos ${opportunities} janela(s) de oportunidade de hedge estratégico com economia potencial de ${fmtBRL(cashSavings)}, e ${criticalAlerts} alerta(s) crítico(s) sistêmicos de alta de custos totalizando ${fmtBRL(costsAvoided)} em risco exposto na cadeia de suprimentos. O câmbio do dólar comercial está em R$ ${usdRate.toFixed(2)}, com IPCA em ${ipcaVal} e Selic em ${selicVal}.`
       : `Nenhum insight registrado nos últimos ${days} dias. Execute uma varredura no Dashboard para gerar dados preditivos.`;
 
     return NextResponse.json({

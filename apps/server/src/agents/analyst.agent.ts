@@ -16,7 +16,7 @@ const ANALYST_PROMPT = `Você é o Agente Analista do Terminal de Inteligência 
 Analise os dados e gere INSIGHTS ACIONÁVEIS em JSON:
 {"insights":[{"type":"RISK_ALERT|OPPORTUNITY|TREND|COMPETITIVE_MOVE|REGULATORY_CHANGE","severity":"LOW|MEDIUM|HIGH|CRITICAL","title":"string","summary":"string","analysis":"string","recommendation":"string","confidence":0.0-1.0,"tags":["string"],"sourceIds":["string"],"commodity":"string"}]}
 Gere apenas insights de ALTO VALOR. Qualidade > Quantidade.
-MUITO IMPORTANTE: O usuário pode solicitar uma análise sobre um PRODUTO ESPECÍFICO de supermercado. Quando isso acontecer, você DEVE correlacionar todas as informações macroeconômicas, climáticas e logísticas com esse produto de forma direta e proporcional. A "commodity" e a "analysis" devem focar inteiramente no impacto sobre ele.`;
+MUITO IMPORTANTE: O usuário pode solicitar uma análise sobre uma COMMODITY MACROECONÔMICA específica. Quando isso acontecer, você DEVE correlacionar todas as informações macroeconômicas, climáticas, geopolíticas e logísticas com esse produto de forma direta e proporcional. A "commodity" e a "analysis" devem focar inteiramente no impacto sobre a cadeia global deste item.`;
 
 export class AnalystAgent implements IAgent {
   readonly name = 'analyst' as const;
@@ -87,7 +87,7 @@ export class AnalystAgent implements IAgent {
       .join('\n---\n');
 
     const systemMsg = targetInsumoName 
-      ? `${ANALYST_PROMPT}\n\nFOCO DA ANÁLISE: Produto de Supermercado '${targetInsumoName}'. Correlacione todos os dados com o impacto financeiro/abastecimento neste item.`
+      ? `${ANALYST_PROMPT}\n\nFOCO DA ANÁLISE: Commodity '${targetInsumoName}'. Correlacione todos os dados com o impacto financeiro/abastecimento global neste item.`
       : ANALYST_PROMPT;
 
     let raw = '';

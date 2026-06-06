@@ -56,7 +56,7 @@ export default function SettingsPage() {
 
   // Form states initialized with standard defaults (will load from localStorage on mount)
   const [general, setGeneral] = useState<GeneralSettings>({
-    chainName: "Supermercados Pão de Ouro",
+    chainName: "Alpha Indústria e Comércio",
     targetMargin: 30,
     coverageDays: 30,
   });
@@ -64,7 +64,7 @@ export default function SettingsPage() {
   const [alerts, setAlerts] = useState<AlertSettings>({
     phone: "(11) 99999-9999",
     minSeverity: "HIGH",
-    staples: ["arroz", "leite", "azeite", "queijo", "carne", "diesel"],
+    staples: ["petroleo_brent", "soja", "minerio_ferro", "etanol_hidratado", "boi_gordo", "diesel_s10"],
     frequency: "IMMEDIATE",
     twilioSid: "",
     twilioToken: "",
@@ -156,42 +156,32 @@ export default function SettingsPage() {
     }
 
     let msg = "";
-    if (selectedStaple === "arroz") {
-      msg = "🌾 *ATLAS ALERTA:* Seca severa confirmada no Sul + aumento de 4% no diesel. O preço do Arroz Tipo 1 vai subir aproximadamente 12% nos próximos 20 dias. Antecipe compras esta semana para garantir a margem atual!";
-    } else if (selectedStaple === "feijao") {
-      msg = "🫘 *ATLAS ALERTA:* Alta demanda no atacado e quebra parcial de safra paulista elevarão preço do Feijão Carioca em 8% nas distribuidoras. Recomendamos adiantar pedidos.";
-    } else if (selectedStaple === "oleo") {
-      msg = "🌻 *ATLAS OPORTUNIDADE:* O Óleo de Soja caiu 5% no atacado após colheita recorde no Centro-Oeste. Excelente momento para fechar contratos de fornecimento.";
-    } else if (selectedStaple === "leite") {
-      msg = "🥛 *ATLAS OPORTUNIDADE:* Captação leiteira em MG subiu 18%. Indústrias parceiras oferecem Leite UHT com 7% de desconto. Janela ideal para repor o estoque mensal nos próximos 5 dias!";
-    } else if (selectedStaple === "cafe") {
-      msg = "☕ *ATLAS ALERTA:* Alta do dólar encarece exportações de grãos. O Café Almofada (500g) subirá 6% para os distribuidores domésticos. Trave preços antigos hoje.";
-    } else if (selectedStaple === "carne") {
-      msg = "🥩 *ATLAS ALERTA:* Abertura de novos mercados internacionais pressiona oferta interna. A Alcatra Bovina (kg) subirá 9% nos frigoríficos. Proteja sua margem.";
-    } else if (selectedStaple === "azeite") {
-      msg = "🫒 *ATLAS ALERTA:* Tarifas portuárias subiram 15% e seca atinge olivais europeus. O Azeite de Oliva subirá 10% nos canais de distribuição. Feche ordens pendentes esta semana.";
+    if (selectedStaple === "soja") {
+      msg = "🌾 *ATLAS ALERTA:* Seca severa confirmada no Sul da América do Sul + aumento no diesel. O preço da Soja vai subir aproximadamente 12% nos próximos 20 dias. Antecipe contratos para garantir a margem industrial!";
+    } else if (selectedStaple === "petroleo_brent") {
+      msg = "🛢️ *ATLAS ALERTA:* Alta demanda e corte da OPEP+ elevarão preço do Brent em 8%. Recomendamos adiantar operações de hedge cambial/óleo.";
+    } else if (selectedStaple === "etanol_hidratado") {
+      msg = "🌻 *ATLAS OPORTUNIDADE:* O Etanol caiu 5% no atacado após colheita recorde de cana. Excelente momento para fechar contratos de fornecimento.";
+    } else if (selectedStaple === "minerio_ferro") {
+      msg = "🪨 *ATLAS OPORTUNIDADE:* Indústrias parceiras indicam desaceleração chinesa. Minério com 7% de desconto. Janela ideal para repor o estoque!";
+    } else if (selectedStaple === "cafe_arabica") {
+      msg = "☕ *ATLAS ALERTA:* Alta do dólar encarece exportações de grãos. O Café Arábica subirá 6% no mercado doméstico. Trave preços antigos hoje.";
+    } else if (selectedStaple === "boi_gordo") {
+      msg = "🥩 *ATLAS ALERTA:* Abertura de novos mercados internacionais pressiona oferta interna. O Boi Gordo subirá 9% nos frigoríficos. Proteja sua margem.";
+    } else if (selectedStaple === "celulose_fibra") {
+      msg = "📦 *ATLAS ALERTA:* Tarifas portuárias subiram 15% e demanda por embalagens atinge pico. A Celulose subirá 10% nos canais de distribuição.";
     } else if (selectedStaple === "trigo") {
-      msg = "🍞 *ATLAS ALERTA:* Custo da farinha de panificação subiu devido ao dólar. O preço do Pão de Forma deve sofrer reajuste de 5% pelas panificadoras parceiras.";
-    } else if (selectedStaple === "acucar") {
-      msg = "🍬 *ATLAS OPORTUNIDADE:* Excedente de produção de cana em SP derruba preço do Açúcar Refinado em 4% no atacado. Janela ideal para compras em volume.";
-    } else if (selectedStaple === "queijo") {
-      msg = "🧀 *ATLAS ALERTA:* Novo regime de Substituição Tributária (ST) de ICMS revoga isenção fiscal. O Queijo Muçarela subirá 8% para entradas a partir do dia 1º.";
-    } else if (selectedStaple === "cerveja") {
-      msg = "🍺 *ATLAS OPORTUNIDADE:* Promoções de final de inverno nas cervejarias locais oferecem cerveja pilsen lata com 6% de desconto para compras acima de 100 caixas.";
-    } else if (selectedStaple === "diesel") {
-      msg = "🚚 *ATLAS ALERTA:* Elevação de 5% no preço do Diesel na refinaria aumentará a tabela média de fretes de distribuição em 4%. Ajuste os custos logísticos.";
-    } else if (selectedStaple === "frango") {
-      msg = "🍗 *ATLAS ALERTA:* Alta nos custos do farelo de soja e milho encarece a criação de aves. O Frango Inteiro (kg) subirá cerca de 7% nos próximos 15 dias. Revise preços de tabela.";
-    } else if (selectedStaple === "sabao") {
-      msg = "🫧 *ATLAS OPORTUNIDADE:* Distribuidora química lança promoção de Sabão em Pó com 8% de desconto em compras fechadas acima de 80 fardos. Janela válida por 5 dias!";
-    } else if (selectedStaple === "margarina") {
-      msg = "🧈 *ATLAS ALERTA:* Quebra de safra de girassol e soja encarece a gordura vegetal. A Margarina (500g) sofrerá reajuste de 6% nas distribuidoras a partir da próxima semana.";
-    } else if (selectedStaple === "macarrao") {
-      msg = "🍝 *ATLAS ALERTA:* Trigo importado e custos com energia elevam o refino de farinha de sêmola. O Macarrão Espaguete de 500g terá reajuste de 5% de entrada em 10 dias.";
-    } else if (selectedStaple === "cremedental") {
-      msg = "🪥 *ATLAS OPORTUNIDADE:* Novo fabricante nacional oferece lote promocional de Creme Dental de 90g com 10% de desconto para compras conjuntas. Excelente margem!";
-    } else if (selectedStaple === "papelhigienico") {
-      msg = "🧻 *ATLAS ALERTA:* Greve nas indústrias de celulose pressiona os suprimentos de higiene. O fardo de Papel Higiênico subirá 9% de custo nos próximos 12 dias. Antecipe estoque.";
+      msg = "🍞 *ATLAS ALERTA:* Custo da importação subiu devido ao dólar. O preço do Trigo deve sofrer reajuste de 5% pelos moinhos parceiros.";
+    } else if (selectedStaple === "acucar_vhp") {
+      msg = "🍬 *ATLAS OPORTUNIDADE:* Excedente de produção de cana em SP derruba preço do Açúcar VHP em 4% no mercado futuro. Janela ideal para compra.";
+    } else if (selectedStaple === "ureia") {
+      msg = "🧪 *ATLAS ALERTA:* Restrições em exportações europeias afetam fertilizantes. A Ureia subirá 8% para entradas a partir do dia 1º.";
+    } else if (selectedStaple === "aco_bobina") {
+      msg = "🏭 *ATLAS OPORTUNIDADE:* Siderúrgicas locais fazem liquidação de estoques. Bobinas a Quente com 6% de desconto para grandes lotes.";
+    } else if (selectedStaple === "diesel_s10") {
+      msg = "🚚 *ATLAS ALERTA:* Elevação de 5% no preço do Diesel nas refinarias aumentará a tabela média de fretes. Ajuste os custos logísticos operacionais.";
+    } else {
+      msg = "⚠️ *ATLAS ALERTA:* Variação significativa detectada nos componentes de custo desta commodity. Revisão imediata de contratos recomendada.";
     }
 
     setWhatsappNotificationText(msg);
@@ -274,7 +264,7 @@ export default function SettingsPage() {
             }`}
           >
             <span>🏢</span>
-            <span>Rede de Supermercado</span>
+            <span>Indústria / Trading</span>
           </button>
           <button
             onClick={() => setActiveTab("ALERTAS")}
@@ -323,20 +313,20 @@ export default function SettingsPage() {
                 className="space-y-6"
               >
                 <div className="border-b border-white/[0.06] pb-3">
-                  <h3 className="text-sm font-bold text-white tracking-wide">Rede de Supermercados</h3>
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5">Parâmetros operacionais padrões do comércio</p>
+                  <h3 className="text-sm font-bold text-white tracking-wide">Indústria / Trading</h3>
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5">Parâmetros operacionais B2B</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {/* Supermarket Name */}
                   <div className="space-y-1.5 col-span-2">
-                    <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Nome da Rede / Loja</label>
+                    <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Nome da Organização</label>
                     <input
                       type="text"
                       value={general.chainName}
                       onChange={(e) => setGeneral((prev) => ({ ...prev, chainName: e.target.value }))}
                       className="w-full bg-black/20 border border-white/[0.08] hover:border-white/[0.15] focus:border-cyan-500/50 rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none transition-all duration-150"
-                      placeholder="Ex: Supermercados Pão de Ouro"
+                      placeholder="Ex: Alpha Indústria S/A"
                     />
                   </div>
 
@@ -355,7 +345,7 @@ export default function SettingsPage() {
                       className="w-full h-1 bg-white/[0.06] rounded-lg appearance-none cursor-pointer accent-cyan-400"
                     />
                     <p className="text-[9px] text-zinc-500">
-                      Margem bruta média de gôndola utilizada para calcular o preço final sugerido.
+                      Margem operacional industrial média utilizada para calcular a viabilidade produtiva.
                     </p>
                   </div>
 
@@ -491,7 +481,7 @@ export default function SettingsPage() {
 
                   {/* Staples Subscriptions */}
                   <div className="space-y-2 col-span-2">
-                    <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">Assinatura de Produtos (12 Staples)</label>
+                    <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">Assinatura de Insumos (Commodities)</label>
                     <p className="text-[10px] text-zinc-500 mb-2">Selecione quais mercadorias você deseja receber alertas instantâneos de flutuação no WhatsApp.</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {STAPLES_OPTIONS.map((opt) => {

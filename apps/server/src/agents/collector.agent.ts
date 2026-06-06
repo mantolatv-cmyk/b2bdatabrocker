@@ -23,21 +23,43 @@ interface SourceConfig {
 
 /** Default sources to monitor */
 const DEFAULT_SOURCES: SourceConfig[] = [
-  { url: 'https://feeds.bbci.co.uk/news/business/rss.xml',       type: 'RSS', name: 'BBC Business' },
-  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', type: 'RSS', name: 'NYT Business' },
+  // Jornais de Economia e Negócios (Nacionais)
   { url: 'https://www.infomoney.com.br/feed/',                   type: 'RSS', name: 'InfoMoney' },
+  { url: 'https://valor.globo.com/rss/valor-economia/',         type: 'RSS', name: 'Valor Econômico' },
+  { url: 'https://exame.com/feed/',                              type: 'RSS', name: 'Exame' },
+  { url: 'https://www.moneytimes.com.br/feed/',                 type: 'RSS', name: 'Money Times' },
+  { url: 'https://www.istoedinheiro.com.br/feed/',              type: 'RSS', name: 'IstoÉ Dinheiro' },
   { url: 'https://g1.globo.com/rss/g1/economia/',               type: 'RSS', name: 'G1 Economia' },
-  { url: 'https://g1.globo.com/rss/g1/agro/',                   type: 'RSS', name: 'G1 Agro' },
   { url: 'https://rss.uol.com.br/feed/economia.xml',            type: 'RSS', name: 'UOL Economia' },
   { url: 'https://feeds.folha.uol.com.br/mercado/rss.xml',      type: 'RSS', name: 'Folha Mercado' },
   { url: 'https://www.estadao.com.br/rss/ultimas/economia.xml', type: 'RSS', name: 'Estadão Economia' },
-  { url: 'https://www.canalrural.com.br/feed/',                 type: 'RSS', name: 'Canal Rural' },
-  { url: 'https://valor.globo.com/rss/valor-economia/',         type: 'RSS', name: 'Valor Econômico' },
-  { url: 'https://exame.com/feed/',                              type: 'RSS', name: 'Exame' },
   { url: 'https://www.cnnbrasil.com.br/economia/feed/',         type: 'RSS', name: 'CNN Brasil Economia' },
+
+  // Agronegócio (Grãos, Carnes, Bioenergia)
+  { url: 'https://g1.globo.com/rss/g1/agro/',                   type: 'RSS', name: 'G1 Agro' },
+  { url: 'https://www.canalrural.com.br/feed/',                 type: 'RSS', name: 'Canal Rural' },
   { url: 'https://www.noticiasagricolas.com.br/rss/ultimas-noticias/', type: 'RSS', name: 'Notícias Agrícolas' },
-  { url: 'https://www.moneytimes.com.br/feed/',                 type: 'RSS', name: 'Money Times' },
-  { url: 'https://www.istoedinheiro.com.br/feed/',              type: 'RSS', name: 'IstoÉ Dinheiro' },
+  { url: 'https://www.agrolink.com.br/rss/noticias.xml',        type: 'RSS', name: 'Agrolink' },
+  { url: 'https://revistagloborural.globo.com/rss/ultimas/',    type: 'RSS', name: 'Globo Rural' },
+  { url: 'https://www.comprerural.com/feed/',                   type: 'RSS', name: 'Compre Rural' },
+  { url: 'https://forbes.com.br/category/forbesagro/feed/',     type: 'RSS', name: 'Forbes Agro' },
+
+  // Energia, Óleo, Mineração e Indústria de Base
+  { url: 'https://epbr.com.br/feed/',                           type: 'RSS', name: 'EPBR (Energia e Petróleo)' },
+  { url: 'https://www.canalenergia.com.br/feed',                type: 'RSS', name: 'Canal Energia' },
+  { url: 'https://www.noticiasdemineracao.com/rss',             type: 'RSS', name: 'Notícias de Mineração' },
+  { url: 'https://oilprice.com/rss/main',                       type: 'RSS', name: 'OilPrice.com (Global)' },
+
+  // Logística, Portos e Cadeia de Suprimentos
+  { url: 'https://www.portosenavios.com.br/rss',                type: 'RSS', name: 'Portos e Navios' },
+
+  // Cotações Internacionais e Mercado Global
+  { url: 'https://br.investing.com/rss/commodities.rss',        type: 'RSS', name: 'Investing.com (Commodities)' },
+  { url: 'https://br.investing.com/rss/news_1.rss',             type: 'RSS', name: 'Investing.com (Câmbio/Forex)' },
+  { url: 'https://feeds.bbci.co.uk/news/business/rss.xml',      type: 'RSS', name: 'BBC Business' },
+  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', type: 'RSS', name: 'NYT Business' },
+  { url: 'https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml',     type: 'RSS', name: 'WSJ Business' },
+  { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?profile=12000000&id=100727362', type: 'RSS', name: 'CNBC World' },
 ];
 
 export class CollectorAgent implements IAgent {

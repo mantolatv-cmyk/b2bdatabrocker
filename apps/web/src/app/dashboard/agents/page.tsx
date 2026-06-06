@@ -18,7 +18,7 @@ const AGENTS_LIST = [
     icon: "🌦️",
     color: "from-amber-500/20 to-orange-500/20 text-amber-400 border-amber-500/20 focus-ring-amber",
     accent: "amber",
-    bullets: ["Monitora bacias leiteiras de MG/GO", "Rastreia pluviometria no Sul (arroz)", "Mapeia cotações agrícolas CEPEA/Grãos"]
+    bullets: ["Monitora produção global agropecuária", "Rastreia clima e gargalos hídricos", "Mapeia dados USDA, CONAB e bolsa de Chicago"]
   },
   {
     id: "logistico",
@@ -28,7 +28,7 @@ const AGENTS_LIST = [
     icon: "🚚",
     color: "from-cyan-500/20 to-blue-500/20 text-cyan-400 border-cyan-500/20 focus-ring-cyan",
     accent: "cyan",
-    bullets: ["Mapeia valor médio do frete ANTT", "Rastreia reajustes de refinaria do diesel", "Calcula custo logístico das gôndolas"]
+    bullets: ["Mapeia valor médio do frete marítimo/terrestre", "Rastreia petróleo Brent/WTI e gargalos", "Calcula custo logístico de suprimentos"]
   },
   {
     id: "fiscal",
@@ -38,7 +38,7 @@ const AGENTS_LIST = [
     icon: "📜",
     color: "from-violet-500/20 to-fuchsia-500/20 text-violet-400 border-violet-500/20 focus-ring-violet",
     accent: "violet",
-    bullets: ["Varre Diários Oficiais estaduais", "Mapeia ST sobre derivados lácteos", "Identifica alterações fiscais de ICMS"]
+    bullets: ["Varre Diários Oficiais e regulação global", "Mapeia impostos e subsídios industriais", "Identifica tarifas e barreiras protecionistas"]
   },
   {
     id: "analista",
@@ -48,7 +48,7 @@ const AGENTS_LIST = [
     icon: "🧠",
     color: "from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/20 focus-ring-emerald",
     accent: "emerald",
-    bullets: ["Alimenta base vetorial RAG local", "Simula taxas de repasse de preço", "Calcula janelas ideais de estocagem"]
+    bullets: ["Alimenta base vetorial RAG macroeconômica", "Simula hedge e correlações de mercado", "Calcula viabilidade de contratos de longo prazo"]
   }
 ];
 
@@ -109,7 +109,7 @@ export default function AgentsPage() {
     // Simulated log stream timeline
     const logIntervals = [
       { delay: 600, progress: 25, log: "🔑 Conexão estabelecida com DeepSeek (Modelo: deepseek-chat)." },
-      { delay: 1400, progress: 50, log: "📥 Injetando Prompt de Sistema e contexto de PME da rede de supermercados..." },
+      { delay: 1400, progress: 50, log: "📥 Injetando Prompt de Sistema e contexto da Indústria/Trading na análise..." },
       { delay: 2200, progress: 75, log: "📊 Coletando cotações cambiais do dólar e índices SGS do Banco Central..." },
       { delay: 3000, progress: 90, log: "🧠 Cruzando dados e inferindo impactos na cadeia de suprimentos..." }
     ];
@@ -338,12 +338,12 @@ Artigo 4º - Fica convocada a junta comercial de saneamento ambiental (CNPJ 00.1
                   type="text"
                   value={targetInput}
                   onChange={(e) => setTargetInput(e.target.value)}
-                  placeholder="Ex: safra de café moído em MG, diesel no Sul, ST de lácteos em SP..."
+                  placeholder="Ex: contratos de soja em Chicago, diesel em SP, tarifas aço..."
                   disabled={isRunning}
                   className="w-full bg-black/20 border border-white/[0.08] hover:border-white/[0.15] focus:border-cyan-500/50 rounded-xl px-4 py-3 text-xs text-white focus:outline-none transition-all duration-150"
                 />
                 <p className="text-[9px] text-zinc-500 leading-normal">
-                  Indique o insumo, mercadoria de supermercado ou estado para obter uma projeção estruturada e preditiva.
+                  Indique a commodity, derivado ou macroeconomia para obter uma projeção de suprimentos preditiva.
                 </p>
               </div>
             )}

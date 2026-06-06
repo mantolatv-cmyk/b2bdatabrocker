@@ -253,9 +253,9 @@ export default function InsightCard({
         <div className="flex items-center justify-between pt-3 border-t border-white/[0.03]">
           {/* Tags */}
           <div className="flex items-center gap-1.5 overflow-hidden">
-            {tags.slice(0, 3).map((tag) => (
+            {Array.from(new Set(tags)).slice(0, 3).map((tag, index) => (
               <motion.span
-                key={tag}
+                key={`${tag}-${index}`}
                 whileHover={{ scale: 1.05, backgroundColor: "rgba(255, 255, 255, 0.08)", borderColor: "rgba(255, 255, 255, 0.12)" }}
                 className="px-2 py-0.5 text-[10px] font-semibold rounded-md bg-white/[0.03] text-zinc-400 border border-white/[0.05] truncate max-w-[100px] transition-colors select-none"
               >

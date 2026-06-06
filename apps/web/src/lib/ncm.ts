@@ -26,5 +26,5 @@ export function normalizeNcm(ncm: string): string {
  */
 export function getCommodityForNcm(ncm: string): NcmMapping | undefined {
   const normalizedInput = normalizeNcm(ncm);
-  return NCM_DATABASE.find(item => normalizeNcm(item.ncm) === normalizedInput);
+  return NCM_DATABASE.find(item => normalizedInput.startsWith(normalizeNcm(item.ncm)));
 }
