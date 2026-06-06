@@ -419,7 +419,7 @@ export async function POST(request: NextRequest) {
           console.log("[Scan] Calling DeepSeek API directly as fallback...");
           const promptComplement = hasRelevantNews 
             ? `Use a seguinte notícia real do mercado como base principal para sua previsão: "${chosenSignal}".`
-            : `Não há notícias específicas urgentes sobre este insumo agora. Portanto, cruze o impacto das variáveis macro (Selic a ${selicVal}, Dólar a ${usdRate}) e o humor global do mercado ("${chosenSignal}") para gerar uma previsão correlacionada e útil.`;
+            : `Não há notícias específicas urgentes sobre este insumo agora. Portanto, cruze o impacto das variáveis macro (Selic a ${selicVal}, Dólar a ${usdText}) e o humor global do mercado ("${chosenSignal}") para gerar uma previsão correlacionada e útil.`;
 
           const systemPrompt = `Você é um Analista de Dados B2B. Gere um Insight Financeiro curto e direto sobre impacto de suprimentos.
 O usuário selecionou o insumo: ${targetInsumo?.name || "Geral"}. É OBRIGATÓRIO que o título e a análise sejam totalmente focados neste insumo.
