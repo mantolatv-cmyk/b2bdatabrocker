@@ -100,7 +100,7 @@ async function structureWithDeepSeek(
         messages: [
           {
             role: "system",
-            content: `Você é o Agente de Ingestão do SaaS Atlas. Sua missão é ler o conteúdo de uma notícia/relatório e extrair os dados estruturados para preencher nosso banco vetorial.
+            content: `Você é o Agente de Ingestão do SaaS Predict. Sua missão é ler o conteúdo de uma notícia/relatório e extrair os dados estruturados para preencher nosso banco vetorial.
 Você deve retornar estritamente um objeto JSON no seguinte formato:
 {
   "content": "Resumo limpo e focado em impactos econômicos para redes varejistas e setor de commodities",

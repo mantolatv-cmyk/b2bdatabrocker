@@ -2,7 +2,7 @@
 
 /**
  * B2B Data Broker — Chat Page (RAG Interface Preditiva)
- * Real-time chat with the Atlas AI assistant powered by DeepSeek.
+ * Real-time chat with the Predict AI assistant powered by DeepSeek.
  */
 
 import React, { useState, useRef, useEffect } from "react";
@@ -129,7 +129,7 @@ export default function ChatPage() {
     {
       id: "welcome",
       role: "assistant",
-      content: "Olá! Sou o **Atlas**, seu assistente de inteligência preditiva focado em **análise de risco** e *arbitragem de lucro*.\n\nPosso estimar a exposição financeira (VaR) de ameaças regulatórias ou mapear gaps deixados pela concorrência nas próximas semanas. O que vamos analisar hoje?",
+      content: "Olá! Sou o **Predict**, seu assistente de inteligência preditiva focado em **análise de risco** e *arbitragem de lucro*.\n\nPosso estimar a exposição financeira (VaR) de ameaças regulatórias ou mapear gaps deixados pela concorrência nas próximas semanas. O que vamos analisar hoje?",
       timestamp: new Date(),
     },
   ]);
@@ -238,7 +238,7 @@ export default function ChatPage() {
         </div>
         <div>
           <h1 className="text-sm sm:text-base font-bold text-white tracking-wide font-display">
-            Atlas Intelligence
+            Predict Intelligence
           </h1>
           <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono font-medium">
             Agente Preditivo Ativo • DeepSeek-Chat
@@ -326,7 +326,7 @@ export default function ChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            placeholder="Pergunte ao Atlas: estimar VaR, oportunidades ou simular cenários..."
+            placeholder="Pergunte ao Predict: estimar VaR, oportunidades ou simular cenários..."
             className="flex-1 bg-transparent text-xs sm:text-sm text-white placeholder:text-zinc-600 outline-none"
             disabled={isLoading}
             autoComplete="off"
@@ -342,7 +342,7 @@ export default function ChatPage() {
           </button>
         </div>
         <p className="text-[8px] sm:text-[9px] text-zinc-600 mt-2.5 text-center uppercase tracking-widest font-mono font-medium">
-          O Atlas utiliza RAG e IA DeepSeek estruturada para projetar tendências financeiras de B2B
+          O Predict utiliza RAG e IA DeepSeek estruturada para projetar tendências financeiras de B2B
         </p>
       </div>
     </div>

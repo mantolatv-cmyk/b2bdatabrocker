@@ -160,7 +160,7 @@ export default function DashboardPage() {
   // Load WhatsApp settings from localStorage if available
   useEffect(() => {
     try {
-      const storedAlerts = localStorage.getItem("atlas_settings_alerts");
+      const storedAlerts = localStorage.getItem("predict_settings_alerts");
       if (storedAlerts) {
         const parsed = JSON.parse(storedAlerts);
         if (parsed.phone) setPhoneNum(parsed.phone);
@@ -311,7 +311,7 @@ export default function DashboardPage() {
 
     // Save phone settings to localStorage
     try {
-      localStorage.setItem("atlas_settings_alerts", JSON.stringify({ phone: phoneNum }));
+      localStorage.setItem("predict_settings_alerts", JSON.stringify({ phone: phoneNum }));
     } catch (_) {}
 
     try {
@@ -358,9 +358,9 @@ export default function DashboardPage() {
       const pct = Math.floor(Math.random() * 10) + 4;
       const days = Math.floor(Math.random() * 20) + 5;
       if (alertType === "ALERTA") {
-        msg = `${insumo.emoji} *ATLAS ALERTA:* ${insumo.name} — Condições de mercado (clima, câmbio, demanda) indicam alta de aproximadamente ${pct}% nos próximos ${days} dias. Antecipe compras para garantir margem.`;
+        msg = `${insumo.emoji} *PREDICT ALERTA:* ${insumo.name} — Condições de mercado (clima, câmbio, demanda) indicam alta de aproximadamente ${pct}% nos próximos ${days} dias. Antecipe compras para garantir margem.`;
       } else {
-        msg = `${insumo.emoji} *ATLAS OPORTUNIDADE:* ${insumo.name} — Janela de mercado favorável com potencial de economia de ${pct}% nos próximos ${days} dias. Aproveite para fechar contratos.`;
+        msg = `${insumo.emoji} *PREDICT OPORTUNIDADE:* ${insumo.name} — Janela de mercado favorável com potencial de economia de ${pct}% nos próximos ${days} dias. Aproveite para fechar contratos.`;
       }
     }
     setWhatsappNotificationText(msg);
@@ -1604,7 +1604,7 @@ export default function DashboardPage() {
                       <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#075e54]" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold leading-tight text-white">Atlas Intelligence</h4>
+                      <h4 className="text-xs font-bold leading-tight text-white">Predict Intelligence</h4>
                       <span className="text-[8px] text-teal-200 font-semibold tracking-wider uppercase">Online (Copiloto)</span>
                     </div>
                   </div>

@@ -93,7 +93,7 @@ export default function ReportsPage() {
   const triggerGenerateReport = async () => {
     setIsGenerating(true);
     setGenerationProgress(0);
-    setGenerationLogs(["⚙️ Inicializando o Orquestrador Atlas para compilação executiva..."]);
+    setGenerationLogs(["⚙️ Inicializando o Orquestrador Predict para compilação executiva..."]);
 
     const steps = [
       { progress: 15, log: "🌦️ [Agente Climático & Agro] Consultando banco de dados CONAB e CEPEA em tempo real..." },
@@ -119,13 +119,13 @@ export default function ReportsPage() {
 
       if (data.success) {
         setGenerationProgress(100);
-        setGenerationLogs(prev => [...prev, "✅ [Atlas IA] Relatório compilado com dados reais do banco de dados e indicadores macroeconômicos ao vivo."]);
+        setGenerationLogs(prev => [...prev, "✅ [Predict IA] Relatório compilado com dados reais do banco de dados e indicadores macroeconômicos ao vivo."]);
 
         setTimeout(() => {
           setIsGenerating(false);
           setActiveReport({
             id: `REP-${Math.floor(1000 + Math.random() * 9000)}`,
-            title: `Relatório Consolidado de Risco & Suprimento Estratégico — Atlas`,
+            title: `Relatório Consolidado de Risco & Suprimento Estratégico — Predict`,
             generatedAt: new Date().toLocaleDateString("pt-BR") + " às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
             periodText: config.period === "7D" ? "Últimos 7 dias" : config.period === "30D" ? "Últimos 30 dias" : config.period === "90D" ? "Últimos 90 dias" : "Mês Corrente",
             stats: data.stats,
@@ -423,7 +423,7 @@ export default function ReportsPage() {
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b border-white/[0.1] pb-6 gap-4 print-border">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-xl bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent font-black tracking-wider">ATLAS</span>
+                        <span className="text-xl bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent font-black tracking-wider">PREDICT</span>
                         <span className="text-[8px] uppercase tracking-widest font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1.5 py-0.5 rounded">Indústria & Trading</span>
                       </div>
                       <h2 className="text-xl font-bold text-white print-text-dark">{activeReport.title}</h2>
@@ -548,10 +548,10 @@ export default function ReportsPage() {
                   {/* Signatures / Disclaimer Footer */}
                   <div className="border-t border-white/[0.08] pt-8 flex flex-col sm:flex-row justify-between items-center text-[10px] text-zinc-500 gap-4 print-border">
                     <p className="text-justify leading-normal max-w-sm">
-                      *Este relatório foi orquestrado pelos 4 agentes integrados da IA Atlas e é confidencial para uso exclusivo da diretoria de suprimentos, hedge e C-level.
+                      *Este relatório foi orquestrado pelos 4 agentes integrados da IA Predict e é confidencial para uso exclusivo da diretoria de suprimentos, hedge e C-level.
                     </p>
                     <div className="flex flex-col items-end gap-1 text-right">
-                      <span className="font-bold text-zinc-400 print-text-dark">Atlas Inteligência Preditiva</span>
+                      <span className="font-bold text-zinc-400 print-text-dark">Predict Inteligência Preditiva</span>
                       <span>Tecnologia B2B DataBroker</span>
                     </div>
                   </div>
@@ -638,7 +638,7 @@ export default function ReportsPage() {
 
               {/* Loading Indicator */}
               <div className="flex justify-between items-center text-[10px] text-zinc-500 font-mono pt-1">
-                <span>Orquestrador Atlas em execução...</span>
+                <span>Orquestrador Predict em execução...</span>
                 <span>Por favor, aguarde</span>
               </div>
             </motion.div>

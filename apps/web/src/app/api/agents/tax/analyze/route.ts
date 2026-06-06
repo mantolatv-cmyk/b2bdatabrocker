@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
 
       // 5. Preparar notificação WhatsApp (para retorno no front)
       const phoneDest = process.env.WHATSAPP_TO || "";
-      const waMsg = `🚨 *ALERTA TRIBUTÁRIO ATLAS* 🚨\n\n*Produto:* ${product.productName} (NCM ${product.ncm})\n*Tipo:* ${parsedResult.tipo_alteracao}\n*Alerta:* ${parsedResult.resumo_alerta}\n\n*Ação Recomendada:* ${parsedResult.acao_recomendada}`;
+      const waMsg = `🚨 *ALERTA TRIBUTÁRIO PREDICT* 🚨\n\n*Produto:* ${product.productName} (NCM ${product.ncm})\n*Tipo:* ${parsedResult.tipo_alteracao}\n*Alerta:* ${parsedResult.resumo_alerta}\n\n*Ação Recomendada:* ${parsedResult.acao_recomendada}`;
       const waUrl = `https://api.whatsapp.com/send?phone=${phoneDest}&text=${encodeURIComponent(waMsg)}`;
 
       insights.push({

@@ -48,7 +48,7 @@ const DEFAULT_CONFIG: Required<RAGConfig> = {
 
 /** System prompt for the RAG chatbot */
 const RAG_SYSTEM_PROMPT = `Você é um analista de inteligência competitiva B2B de alto nível. 
-Seu nome é "Atlas" e você faz parte do Terminal de Inteligência.
+Seu nome é "Predict" e você faz parte do Terminal de Inteligência.
 
 REGRAS:
 - Responda SEMPRE em português brasileiro

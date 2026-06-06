@@ -60,7 +60,7 @@ export default function InsightsPage() {
   useEffect(() => {
     // Load default saved phone from settings if available
     if (typeof window !== "undefined") {
-      const savedPhone = localStorage.getItem("atlas_whatsapp_phone") || "";
+      const savedPhone = localStorage.getItem("predict_whatsapp_phone") || "";
       setWhatsappPhone(savedPhone);
     }
     loadInsights();
@@ -122,7 +122,7 @@ export default function InsightsPage() {
     setWaStatus(null);
 
     // Save phone to localStorage
-    localStorage.setItem("atlas_whatsapp_phone", whatsappPhone);
+    localStorage.setItem("predict_whatsapp_phone", whatsappPhone);
 
     try {
       const res = await fetch("/api/notifications/whatsapp", {

@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const isTwilioConfigured = !!(twilioSid && twilioToken && twilioFrom);
 
-    const formattedMessage = `📢 *Atlas Intelligence — Alerta Preditivo*\n\n📌 *${title || "Nova Previsão"}*\n\n💡 *Previsão:* ${message}\n\n👉 *Ação Recomendada:* ${recommendedAction || "Acessar o terminal para detalhes."}\n\n_Enviado pelo seu Terminal Atlas de Supermercados._`;
+    const formattedMessage = `📢 *Predict Intelligence — Alerta Preditivo*\n\n📌 *${title || "Nova Previsão"}*\n\n💡 *Previsão:* ${message}\n\n👉 *Ação Recomendada:* ${recommendedAction || "Acessar o terminal para detalhes."}\n\n_Enviado pelo seu Terminal Predict de Supermercados._`;
 
     // 1. Twilio API Integration (If credentials exist)
     if (isTwilioConfigured) {

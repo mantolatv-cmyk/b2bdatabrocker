@@ -92,10 +92,10 @@ export default function SettingsPage() {
   // Load from localStorage on mount
   useEffect(() => {
     try {
-      const storedGeneral = localStorage.getItem("atlas_settings_general");
-      const storedAlerts = localStorage.getItem("atlas_settings_alerts");
-      const storedIa = localStorage.getItem("atlas_settings_ia");
-      const storedSources = localStorage.getItem("atlas_settings_sources");
+      const storedGeneral = localStorage.getItem("predict_settings_general");
+      const storedAlerts = localStorage.getItem("predict_settings_alerts");
+      const storedIa = localStorage.getItem("predict_settings_ia");
+      const storedSources = localStorage.getItem("predict_settings_sources");
 
       if (storedGeneral) {
         const parsed = JSON.parse(storedGeneral);
@@ -125,10 +125,10 @@ export default function SettingsPage() {
 
   const handleSave = () => {
     try {
-      localStorage.setItem("atlas_settings_general", JSON.stringify(general));
-      localStorage.setItem("atlas_settings_alerts", JSON.stringify(alerts));
-      localStorage.setItem("atlas_settings_ia", JSON.stringify(ia));
-      localStorage.setItem("atlas_settings_sources", JSON.stringify(sources));
+      localStorage.setItem("predict_settings_general", JSON.stringify(general));
+      localStorage.setItem("predict_settings_alerts", JSON.stringify(alerts));
+      localStorage.setItem("predict_settings_ia", JSON.stringify(ia));
+      localStorage.setItem("predict_settings_sources", JSON.stringify(sources));
       showToast("Configurações salvas e aplicadas!");
     } catch (e) {
       console.error(e);
@@ -157,31 +157,31 @@ export default function SettingsPage() {
 
     let msg = "";
     if (selectedStaple === "soja") {
-      msg = "🌾 *ATLAS ALERTA:* Seca severa confirmada no Sul da América do Sul + aumento no diesel. O preço da Soja vai subir aproximadamente 12% nos próximos 20 dias. Antecipe contratos para garantir a margem industrial!";
+      msg = "🌾 *PREDICT ALERTA:* Seca severa confirmada no Sul da América do Sul + aumento no diesel. O preço da Soja vai subir aproximadamente 12% nos próximos 20 dias. Antecipe contratos para garantir a margem industrial!";
     } else if (selectedStaple === "petroleo_brent") {
-      msg = "🛢️ *ATLAS ALERTA:* Alta demanda e corte da OPEP+ elevarão preço do Brent em 8%. Recomendamos adiantar operações de hedge cambial/óleo.";
+      msg = "🛢️ *PREDICT ALERTA:* Alta demanda e corte da OPEP+ elevarão preço do Brent em 8%. Recomendamos adiantar operações de hedge cambial/óleo.";
     } else if (selectedStaple === "etanol_hidratado") {
-      msg = "🌻 *ATLAS OPORTUNIDADE:* O Etanol caiu 5% no atacado após colheita recorde de cana. Excelente momento para fechar contratos de fornecimento.";
+      msg = "🌻 *PREDICT OPORTUNIDADE:* O Etanol caiu 5% no atacado após colheita recorde de cana. Excelente momento para fechar contratos de fornecimento.";
     } else if (selectedStaple === "minerio_ferro") {
-      msg = "🪨 *ATLAS OPORTUNIDADE:* Indústrias parceiras indicam desaceleração chinesa. Minério com 7% de desconto. Janela ideal para repor o estoque!";
+      msg = "🪨 *PREDICT OPORTUNIDADE:* Indústrias parceiras indicam desaceleração chinesa. Minério com 7% de desconto. Janela ideal para repor o estoque!";
     } else if (selectedStaple === "cafe_arabica") {
-      msg = "☕ *ATLAS ALERTA:* Alta do dólar encarece exportações de grãos. O Café Arábica subirá 6% no mercado doméstico. Trave preços antigos hoje.";
+      msg = "☕ *PREDICT ALERTA:* Alta do dólar encarece exportações de grãos. O Café Arábica subirá 6% no mercado doméstico. Trave preços antigos hoje.";
     } else if (selectedStaple === "boi_gordo") {
-      msg = "🥩 *ATLAS ALERTA:* Abertura de novos mercados internacionais pressiona oferta interna. O Boi Gordo subirá 9% nos frigoríficos. Proteja sua margem.";
+      msg = "🥩 *PREDICT ALERTA:* Abertura de novos mercados internacionais pressiona oferta interna. O Boi Gordo subirá 9% nos frigoríficos. Proteja sua margem.";
     } else if (selectedStaple === "celulose_fibra") {
-      msg = "📦 *ATLAS ALERTA:* Tarifas portuárias subiram 15% e demanda por embalagens atinge pico. A Celulose subirá 10% nos canais de distribuição.";
+      msg = "📦 *PREDICT ALERTA:* Tarifas portuárias subiram 15% e demanda por embalagens atinge pico. A Celulose subirá 10% nos canais de distribuição.";
     } else if (selectedStaple === "trigo") {
-      msg = "🍞 *ATLAS ALERTA:* Custo da importação subiu devido ao dólar. O preço do Trigo deve sofrer reajuste de 5% pelos moinhos parceiros.";
+      msg = "🍞 *PREDICT ALERTA:* Custo da importação subiu devido ao dólar. O preço do Trigo deve sofrer reajuste de 5% pelos moinhos parceiros.";
     } else if (selectedStaple === "acucar_vhp") {
-      msg = "🍬 *ATLAS OPORTUNIDADE:* Excedente de produção de cana em SP derruba preço do Açúcar VHP em 4% no mercado futuro. Janela ideal para compra.";
+      msg = "🍬 *PREDICT OPORTUNIDADE:* Excedente de produção de cana em SP derruba preço do Açúcar VHP em 4% no mercado futuro. Janela ideal para compra.";
     } else if (selectedStaple === "ureia") {
-      msg = "🧪 *ATLAS ALERTA:* Restrições em exportações europeias afetam fertilizantes. A Ureia subirá 8% para entradas a partir do dia 1º.";
+      msg = "🧪 *PREDICT ALERTA:* Restrições em exportações europeias afetam fertilizantes. A Ureia subirá 8% para entradas a partir do dia 1º.";
     } else if (selectedStaple === "aco_bobina") {
-      msg = "🏭 *ATLAS OPORTUNIDADE:* Siderúrgicas locais fazem liquidação de estoques. Bobinas a Quente com 6% de desconto para grandes lotes.";
+      msg = "🏭 *PREDICT OPORTUNIDADE:* Siderúrgicas locais fazem liquidação de estoques. Bobinas a Quente com 6% de desconto para grandes lotes.";
     } else if (selectedStaple === "diesel_s10") {
-      msg = "🚚 *ATLAS ALERTA:* Elevação de 5% no preço do Diesel nas refinarias aumentará a tabela média de fretes. Ajuste os custos logísticos operacionais.";
+      msg = "🚚 *PREDICT ALERTA:* Elevação de 5% no preço do Diesel nas refinarias aumentará a tabela média de fretes. Ajuste os custos logísticos operacionais.";
     } else {
-      msg = "⚠️ *ATLAS ALERTA:* Variação significativa detectada nos componentes de custo desta commodity. Revisão imediata de contratos recomendada.";
+      msg = "⚠️ *PREDICT ALERTA:* Variação significativa detectada nos componentes de custo desta commodity. Revisão imediata de contratos recomendada.";
     }
 
     setWhatsappNotificationText(msg);
@@ -736,7 +736,7 @@ export default function SettingsPage() {
                       <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#075e54]" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold leading-tight text-white">Atlas Intelligence</h4>
+                      <h4 className="text-xs font-bold leading-tight text-white">Predict Intelligence</h4>
                       <span className="text-[8px] text-teal-200 font-semibold tracking-wider uppercase">Online (Copiloto)</span>
                     </div>
                   </div>

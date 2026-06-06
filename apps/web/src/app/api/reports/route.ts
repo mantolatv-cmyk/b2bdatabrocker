@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
     }));
 
     const executiveSummary = totalAlerts > 0
-      ? `No período de ${days} dias, o Terminal Atlas monitorou ${totalAlerts} variações relevantes nos mercados macroeconômicos e de commodities. Identificamos ${opportunities} janela(s) de oportunidade de hedge estratégico com economia potencial de ${fmtBRL(cashSavings)}, e ${criticalAlerts} alerta(s) crítico(s) sistêmicos de alta de custos totalizando ${fmtBRL(costsAvoided)} em risco exposto na cadeia de suprimentos. O câmbio do dólar comercial está em R$ ${usdRate.toFixed(2)}, com IPCA em ${ipcaVal} e Selic em ${selicVal}.`
+      ? `No período de ${days} dias, o Terminal Predict monitorou ${totalAlerts} variações relevantes nos mercados macroeconômicos e de commodities. Identificamos ${opportunities} janela(s) de oportunidade de hedge estratégico com economia potencial de ${fmtBRL(cashSavings)}, e ${criticalAlerts} alerta(s) crítico(s) sistêmicos de alta de custos totalizando ${fmtBRL(costsAvoided)} em risco exposto na cadeia de suprimentos. O câmbio do dólar comercial está em R$ ${usdRate.toFixed(2)}, com IPCA em ${ipcaVal} e Selic em ${selicVal}.`
       : `Nenhum insight registrado nos últimos ${days} dias. Execute uma varredura no Dashboard para gerar dados preditivos.`;
 
     return NextResponse.json({

@@ -45,7 +45,7 @@ export default function Sidebar() {
             <circle cx="16" cy="16" r="4.5" fill="url(#logo-grad)" filter="url(#logo-glow)" />
           </svg>
           <div>
-            <h1 className="text-sm font-bold text-white tracking-tight">Atlas</h1>
+            <h1 className="text-sm font-bold text-white tracking-tight">Predict</h1>
             <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Intelligence</p>
           </div>
         </Link>

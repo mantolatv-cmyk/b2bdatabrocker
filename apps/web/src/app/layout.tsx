@@ -21,7 +21,7 @@ const display = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Atlas Intelligence — Terminal de Inteligência B2B",
+  title: "Predict Intelligence — Terminal de Inteligência B2B",
   description:
     "Plataforma de inteligência competitiva que coleta, analisa e entrega insights acionáveis para decisões empresariais de alto nível.",
   keywords: ["inteligência competitiva", "B2B", "data broker", "insights", "IA"],
