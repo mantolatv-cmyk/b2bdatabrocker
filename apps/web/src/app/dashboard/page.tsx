@@ -579,6 +579,15 @@ export default function DashboardPage() {
     return ((curr - prev) / prev) * 100;
   };
 
+  // Determine overall trend theme (risk = up = red, opportunity = down = green, stable = neutral)
+  const firstPrice = activeData[0]?.price || 0;
+  const lastPrice = activeData[activeData.length - 1]?.price || 0;
+  const overallDiffPct = firstPrice > 0 ? ((lastPrice - firstPrice) / firstPrice) * 100 : 0;
+  
+  let trendTheme = "stable";
+  if (overallDiffPct > 2.5) trendTheme = "risk";
+  else if (overallDiffPct < -2.5) trendTheme = "opportunity";
+
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8 relative">
       {/* ── Toast Alert ── */}
@@ -742,16 +751,42 @@ export default function DashboardPage() {
             <div className="relative w-full h-[160px] select-none">
               <svg className="w-full h-full" viewBox="0 0 500 160" preserveAspectRatio="none">
                 <defs>
-                  <linearGradient id="chart-fill-grad" x1="0" y1="0" x2="0" y2="1">
+                  {/* Stable (Neutral) Gradients */}
+                  <linearGradient id="chart-fill-stable" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.25" />
                     <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.08" />
                     <stop offset="100%" stopColor="#34d399" stopOpacity="0.0" />
                   </linearGradient>
-                  <linearGradient id="line-stroke-grad" x1="0" y1="0" x2="1" y2="0">
+                  <linearGradient id="line-stroke-stable" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor="#8b5cf6" />
                     <stop offset="50%" stopColor="#22d3ee" />
                     <stop offset="100%" stopColor="#34d399" />
                   </linearGradient>
+
+                  {/* Risk (Up/Red) Gradients */}
+                  <linearGradient id="chart-fill-risk" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity="0.25" />
+                    <stop offset="50%" stopColor="#f97316" stopOpacity="0.08" />
+                    <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.0" />
+                  </linearGradient>
+                  <linearGradient id="line-stroke-risk" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#ef4444" />
+                    <stop offset="50%" stopColor="#f97316" />
+                    <stop offset="100%" stopColor="#f59e0b" />
+                  </linearGradient>
+
+                  {/* Opportunity (Down/Green) Gradients */}
+                  <linearGradient id="chart-fill-opp" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                    <stop offset="50%" stopColor="#059669" stopOpacity="0.08" />
+                    <stop offset="100%" stopColor="#34d399" stopOpacity="0.0" />
+                  </linearGradient>
+                  <linearGradient id="line-stroke-opp" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#10b981" />
+                    <stop offset="50%" stopColor="#059669" />
+                    <stop offset="100%" stopColor="#34d399" />
+                  </linearGradient>
+
                   <filter id="line-glow" x="-20%" y="-20%" width="140%" height="140%">
                     <feGaussianBlur stdDeviation="3" result="blur" />
                     <feMerge>
@@ -768,6 +803,23 @@ export default function DashboardPage() {
                     </feMerge>
                   </filter>
                 </defs>
+
+                {/* Background Opportunity / Risk Highlight Zones */}
+                {activeData.map((d: any, i: number) => {
+                  const x = paddingLeft + (i / (activeData.length - 1)) * chartWidth;
+                  const zoneWidth = chartWidth / (activeData.length - 1);
+                  if (d.status === "high") {
+                    return (
+                      <rect key={`zone-${i}`} x={x - zoneWidth / 2} y={paddingTop} width={zoneWidth} height={chartHeight} fill="url(#chart-fill-risk)" opacity="0.15" />
+                    );
+                  }
+                  if (d.status === "buy") {
+                    return (
+                      <rect key={`zone-${i}`} x={x - zoneWidth / 2} y={paddingTop} width={zoneWidth} height={chartHeight} fill="url(#chart-fill-opp)" opacity="0.15" />
+                    );
+                  }
+                  return null;
+                })}
 
                 {/* Horizontal Gridlines & Price Labels */}
                 {[0, 0.25, 0.5, 0.75, 1].map((val) => {
@@ -800,7 +852,7 @@ export default function DashboardPage() {
                 {/* Price Gradient Area — animated opacity */}
                 <motion.path
                   d={fillPath}
-                  fill="url(#chart-fill-grad)"
+                  fill={`url(#chart-fill-${trendTheme})`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.8, ease: "easeOut" }}
@@ -809,7 +861,7 @@ export default function DashboardPage() {
                 {/* Price Line Glow (behind) */}
                 <motion.path
                   d={smoothPath}
-                  stroke="url(#line-stroke-grad)"
+                  stroke={`url(#line-stroke-${trendTheme})`}
                   strokeWidth="6"
                   fill="none"
                   strokeLinecap="round"
@@ -822,8 +874,9 @@ export default function DashboardPage() {
 
                 {/* Price Line — animated draw */}
                 <motion.path
+                  key={`line-${selectedMaterial}-${chartPeriod}`}
                   d={smoothPath}
-                  stroke="url(#line-stroke-grad)"
+                  stroke={`url(#line-stroke-${trendTheme})`}
                   strokeWidth="3.5"
                   fill="none"
                   strokeLinecap="round"
@@ -876,7 +929,7 @@ export default function DashboardPage() {
                       cy={paddingTop + chartHeight - ((activeData[hoveredIndex].price - minPrice) / priceRange) * chartHeight}
                       r="7"
                       fill="#ffffff"
-                      stroke="#8b5cf6"
+                      stroke={trendTheme === "risk" ? "#ef4444" : trendTheme === "opportunity" ? "#10b981" : "#8b5cf6"}
                       strokeWidth="2.5"
                       initial={{ scale: 0.5, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
@@ -889,7 +942,7 @@ export default function DashboardPage() {
                       cy={paddingTop + chartHeight - ((activeData[hoveredIndex].price - minPrice) / priceRange) * chartHeight}
                       r="12"
                       fill="none"
-                      stroke="#8b5cf6"
+                      stroke={trendTheme === "risk" ? "#ef4444" : trendTheme === "opportunity" ? "#10b981" : "#8b5cf6"}
                       strokeWidth="0.8"
                       initial={{ scale: 0.5, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
