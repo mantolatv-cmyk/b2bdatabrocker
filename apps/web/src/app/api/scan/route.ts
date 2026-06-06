@@ -307,14 +307,20 @@ export async function POST(request: NextRequest) {
       return scanKeywords.some(keyword => textToSearch.includes(keyword));
     });
 
+    let chosenSignal = "Monitoramento global e indicadores macroeconômicos não apresentam anomalias severas.";
+    let chosenNewsUrl = "https://www.canalrural.com.br/radar/";
+    let hasRelevantNews = false;
+
     if (relevantNews.length > 0) {
       const item = relevantNews[Math.floor(Math.random() * relevantNews.length)];
       chosenSignal = `${item.title}. ${item.description ? `Resumo: ${item.description.slice(0, 180)}...` : ""}`;
       chosenNewsUrl = item.link;
+      hasRelevantNews = true;
     } else if (newsItems.length > 0) {
       const item = newsItems[Math.floor(Math.random() * newsItems.length)];
       chosenSignal = `${item.title}. ${item.description ? `Resumo: ${item.description.slice(0, 180)}...` : ""}`;
       chosenNewsUrl = item.link;
+      hasRelevantNews = false;
     } else {
       chosenSignal = "OPEP+ anuncia corte surpresa na produção, impactando a cotação global do barril de petróleo e custos logísticos industriais.";
       chosenNewsUrl = "https://g1.globo.com/agro/";
@@ -411,11 +417,15 @@ export async function POST(request: NextRequest) {
       if (DEEPSEEK_API_KEY) {
         try {
           console.log("[Scan] Calling DeepSeek API directly as fallback...");
+          const promptComplement = hasRelevantNews 
+            ? `Use a seguinte notícia real do mercado como base principal para sua previsão: "${chosenSignal}".`
+            : `Não há notícias específicas urgentes sobre este insumo agora. Portanto, cruze o impacto das variáveis macro (Selic a ${selicVal}, Dólar a ${usdRate}) e o humor global do mercado ("${chosenSignal}") para gerar uma previsão correlacionada e útil.`;
+
           const systemPrompt = `Você é um Analista de Dados B2B. Gere um Insight Financeiro curto e direto sobre impacto de suprimentos.
-O usuário selecionou o insumo: ${targetInsumo?.name || "Commodity Padrão"}.
-Use a seguinte manchete real como base: "${chosenSignal}".
+O usuário selecionou o insumo: ${targetInsumo?.name || "Geral"}. É OBRIGATÓRIO que o título e a análise sejam totalmente focados neste insumo.
+${promptComplement}
 Retorne EXATAMENTE um objeto JSON válido no formato:
-{ "title": "Título curto", "riskLevel": "OPPORTUNITY" ou "CRITICAL" ou "WARNING", "analysis": "Sua análise curta", "recommendedAction": "Ação recomendada" }`;
+{ "title": "Título curto", "riskLevel": "OPPORTUNITY" ou "CRITICAL" ou "WARNING", "analysis": "Sua análise curta focada no insumo selecionado", "recommendedAction": "Ação recomendada" }`;
 
           const llmResp = await fetch("https://api.deepseek.com/chat/completions", {
             method: "POST",

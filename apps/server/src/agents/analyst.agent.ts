@@ -87,7 +87,7 @@ export class AnalystAgent implements IAgent {
       .join('\n---\n');
 
     const systemMsg = targetInsumoName 
-      ? `${ANALYST_PROMPT}\n\nFOCO DA ANÁLISE: Commodity '${targetInsumoName}'. Correlacione todos os dados com o impacto financeiro/abastecimento global neste item.`
+      ? `${ANALYST_PROMPT}\n\nFOCO DA ANÁLISE: É OBRIGATÓRIO focar inteiramente na Commodity '${targetInsumoName}'. Se as notícias não citarem este insumo, cruze os dados macroeconômicos (dólar, clima, juros) para deduzir o impacto direto em ${targetInsumoName}. NUNCA mude de assunto para outro produto.`
       : ANALYST_PROMPT;
 
     let raw = '';

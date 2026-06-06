@@ -7,7 +7,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "type-check": "tsc --noEmit",
-    "lint": "echo 'no lint configured'"
+    "lint": "echo 'no lint configured'",
+    "dev:pipeline": "tsx src/run-pipeline.ts"
   },
   "dependencies": {
     "@b2b/database": "*",
