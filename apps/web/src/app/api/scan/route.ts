@@ -396,24 +396,77 @@ export async function POST(request: NextRequest) {
 
     // If server run failed to return a card, fetch the latest card from database or mock one
     if (!serverCard) {
-      serverCard = await prisma.insightCard.findFirst({
-        orderBy: { createdAt: "desc" }
-      });
+      try {
+        serverCard = await prisma.insightCard.findFirst({
+          orderBy: { createdAt: "desc" }
+        });
+      } catch (dbError) {
+        console.warn("[Scan] Prisma DB not available:", dbError);
+      }
     }
 
+    // Se ainda não temos serverCard (sem backend e sem DB), geramos um REAL via DeepSeek direto pela API do Next.js
     if (!serverCard) {
-      // Fallback mock card
-      serverCard = {
-        id: Math.random().toString(36).substring(2, 9),
-        title: targetInsumo
-          ? `${targetInsumo.emoji} ${targetInsumo.name}: Oportunidade de Hedge / Aquisição Estratégica`
-          : "Petróleo Brent: Risco de Alta e Impacto na Cadeia Logística",
-        riskLevel: targetInsumo ? "OPPORTUNITY" : "WARNING",
-        commodity: targetInsumo ? targetInsumo.name : "Petróleo Brent",
-        analysis: "Instabilidade macroeconômica e choques de oferta globais sugerem reajustes no curto prazo.",
-        recommendedAction: "Antecipe contratos de fornecimento ou monte posições de hedge para mitigar exposição.",
-        createdAt: new Date()
-      };
+      const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+      if (DEEPSEEK_API_KEY) {
+        try {
+          console.log("[Scan] Calling DeepSeek API directly as fallback...");
+          const systemPrompt = `Você é um Analista de Dados B2B. Gere um Insight Financeiro curto e direto sobre impacto de suprimentos.
+O usuário selecionou o insumo: ${targetInsumo?.name || "Commodity Padrão"}.
+Use a seguinte manchete real como base: "${chosenSignal}".
+Retorne EXATAMENTE um objeto JSON válido no formato:
+{ "title": "Título curto", "riskLevel": "OPPORTUNITY" ou "CRITICAL" ou "WARNING", "analysis": "Sua análise curta", "recommendedAction": "Ação recomendada" }`;
+
+          const llmResp = await fetch("https://api.deepseek.com/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: "deepseek-chat",
+              messages: [{ role: "system", content: systemPrompt }],
+              response_format: { type: "json_object" },
+              temperature: 0.5,
+              max_tokens: 300,
+            }),
+          });
+          
+          if (llmResp.ok) {
+            const llmData = await llmResp.json();
+            const content = llmData.choices?.[0]?.message?.content;
+            if (content) {
+              const parsed = JSON.parse(content);
+              serverCard = {
+                id: Math.random().toString(36).substring(2, 9),
+                title: parsed.title,
+                riskLevel: parsed.riskLevel,
+                commodity: targetInsumo ? targetInsumo.name : "Macro",
+                analysis: parsed.analysis,
+                recommendedAction: parsed.recommendedAction,
+                createdAt: new Date()
+              };
+            }
+          }
+        } catch (llmErr) {
+          console.warn("[Scan] Direct DeepSeek fallback failed:", llmErr);
+        }
+      }
+
+      // Se tudo falhar, gera um Mock
+      if (!serverCard) {
+        serverCard = {
+          id: Math.random().toString(36).substring(2, 9),
+          title: targetInsumo
+            ? `${targetInsumo.emoji} ${targetInsumo.name}: Oportunidade de Hedge / Aquisição Estratégica`
+            : "Petróleo Brent: Risco de Alta e Impacto na Cadeia Logística",
+          riskLevel: targetInsumo ? "OPPORTUNITY" : "WARNING",
+          commodity: targetInsumo ? targetInsumo.name : "Petróleo Brent",
+          analysis: "Instabilidade macroeconômica e choques de oferta globais sugerem reajustes no curto prazo.",
+          recommendedAction: "Antecipe contratos de fornecimento ou monte posições de hedge para mitigar exposição.",
+          createdAt: new Date()
+        };
+      }
     }
 
     // Override commodity with targetInsumo when set
