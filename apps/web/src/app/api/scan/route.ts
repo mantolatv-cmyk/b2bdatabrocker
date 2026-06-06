@@ -400,18 +400,7 @@ export async function POST(request: NextRequest) {
       console.warn("[Scan] Failed to connect to server orchestrator:", err.message);
     }
 
-    // If server run failed to return a card, fetch the latest card from database or mock one
-    if (!serverCard) {
-      try {
-        serverCard = await prisma.insightCard.findFirst({
-          orderBy: { createdAt: "desc" }
-        });
-      } catch (dbError) {
-        console.warn("[Scan] Prisma DB not available:", dbError);
-      }
-    }
-
-    // Se ainda não temos serverCard (sem backend e sem DB), geramos um REAL via DeepSeek direto pela API do Next.js
+    // Se o backend não respondeu (ex: Vercel sem servidor local rodando), geramos um REAL via DeepSeek direto pela API do Next.js
     if (!serverCard) {
       const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
       if (DEEPSEEK_API_KEY) {
@@ -463,7 +452,18 @@ Retorne EXATAMENTE um objeto JSON válido no formato:
         }
       }
 
-      // Se tudo falhar, gera um Mock
+      // Se o DeepSeek falhar, tentamos pegar o último gerado do banco de dados
+      if (!serverCard) {
+        try {
+          serverCard = await prisma.insightCard.findFirst({
+            orderBy: { createdAt: "desc" }
+          });
+        } catch (dbError) {
+          console.warn("[Scan] Prisma DB not available:", dbError);
+        }
+      }
+
+      // Se tudo falhar (sem backend, sem DeepSeek e sem DB), gera um Mock
       if (!serverCard) {
         serverCard = {
           id: Math.random().toString(36).substring(2, 9),
