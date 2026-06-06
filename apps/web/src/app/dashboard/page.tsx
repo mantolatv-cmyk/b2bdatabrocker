@@ -540,7 +540,7 @@ export default function DashboardPage() {
   const paddingLeft = 55;
   const paddingRight = 20;
   const chartWidth = 500 - paddingLeft - paddingRight;
-  const chartHeight = 110;
+  const chartHeight = 190;
   const paddingTop = 20;
 
   // Smooth curve helper (Catmull-Rom → cubic bezier)
@@ -748,8 +748,8 @@ export default function DashboardPage() {
             </div>
 
             {/* SVG Chart Container */}
-            <div className="relative w-full h-[160px] select-none">
-              <svg className="w-full h-full" viewBox="0 0 500 160" preserveAspectRatio="none">
+            <div className="relative w-full h-[240px] select-none">
+              <svg className="w-full h-full" viewBox="0 0 500 240" preserveAspectRatio="none">
                 <defs>
                   {/* Stable (Neutral) Gradients */}
                   <linearGradient id="chart-fill-stable" x1="0" y1="0" x2="0" y2="1">
@@ -840,8 +840,8 @@ export default function DashboardPage() {
                         x={paddingLeft - 8}
                         y={y + 3}
                         textAnchor="end"
-                        fill="#71717a"
-                        className="text-[8px] font-mono font-medium"
+                        fill="#a1a1aa"
+                        className="text-[9px] font-sans tracking-wide font-medium"
                       >
                         R$ {priceVal.toFixed(2)}
                       </text>
@@ -973,7 +973,7 @@ export default function DashboardPage() {
               </svg>
 
               {/* X Axis Labels */}
-              <div className="absolute bottom-[-16px] left-[55px] right-[20px] flex justify-between text-[8px] text-zinc-500 font-mono">
+              <div className="absolute bottom-[-16px] left-[55px] right-[20px] flex justify-between text-[9px] text-zinc-400 font-sans tracking-wide font-medium">
                 {activeData.map((d: any, i: number) => (
                   <span key={i} className="text-center w-10">{d.day}</span>
                 ))}
