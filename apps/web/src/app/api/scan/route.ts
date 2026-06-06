@@ -307,8 +307,8 @@ export async function POST(request: NextRequest) {
       return scanKeywords.some(keyword => textToSearch.includes(keyword));
     });
 
-    let chosenSignal = "Monitoramento global e indicadores macroeconômicos não apresentam anomalias severas.";
-    let chosenNewsUrl = "https://www.canalrural.com.br/radar/";
+    chosenSignal = "Monitoramento global e indicadores macroeconômicos não apresentam anomalias severas.";
+    chosenNewsUrl = "https://www.canalrural.com.br/radar/";
     let hasRelevantNews = false;
 
     if (relevantNews.length > 0) {
