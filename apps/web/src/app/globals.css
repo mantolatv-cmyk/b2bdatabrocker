@@ -16,9 +16,14 @@
   --color-border-default: rgba(255, 255, 255, 0.1);
   --color-border-strong: rgba(255, 255, 255, 0.15);
 
-  --color-text-primary: #fafafa;
-  --color-text-secondary: #a1a1aa;
-  --color-text-muted: #71717a;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #e4e4e7;
+  --color-text-muted: #a1a1aa;
+
+  /* Overrides to make zinc text utilities brighter/crisper project-wide */
+  --color-zinc-400: #e4e4e7; /* originally #a1a1aa */
+  --color-zinc-500: #d4d4d8; /* originally #71717a */
+  --color-zinc-600: #a1a1aa; /* originally #52525b */
 
   /* Accent Colors */
   --color-accent-cyan: #22d3ee;
@@ -55,8 +60,9 @@ body {
     radial-gradient(circle at 100% 100%, rgba(34, 211, 238, 0.02) 0%, transparent 40%),
     radial-gradient(circle at 0% 100%, rgba(139, 92, 246, 0.02) 0%, transparent 40%);
   color: var(--color-text-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
+  text-rendering: optimizeLegibility;
 }
 
 /* ── Glassmorphism Utilities (High Definition) ── */
